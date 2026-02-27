@@ -405,7 +405,7 @@ const VisitorManagement = () => {
         )
     };
 
-    if (storedUsername?.toLowerCase() === "admin") {
+    if (storedUsername?.toLowerCase() === "admin" || storedUsername?.toUpperCase() === "AAKASH AGRAWAL") {
         return (
             <AdminLayout>
                 <AdminAllVisits />
