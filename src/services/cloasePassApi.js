@@ -1,7 +1,23 @@
-import api from "./axiosInstance";
+import { getVisitors, updateVisitorStatus } from "./localDb";
 
-export const fetchGatePassesApi = () =>
-    api.get("/gatepass");
+export const fetchGatePassesApi = async () => {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const visitors = getVisitors();
+            resolve({ data: { data: visitors } });
+        }, 300);
+    });
+};
 
-export const closeGatePassApi = (id) =>
-    api.patch(`/gatepass/${id}`);
+export const closeGatePassApi = async (id) => {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            updateVisitorStatus(id, {
+                gate_pass_closed: true,
+                visitor_out_time: new Date().toTimeString().split(' ')[0], // HH:MM:SS
+                status: "OUT"
+            });
+            resolve({ data: { success: true } });
+        }, 500);
+    });
+};

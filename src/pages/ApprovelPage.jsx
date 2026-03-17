@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { FileText, ScrollText, Users, User, KeyRound, Clock, CheckCircle, LogOut, Bell, Calendar, UserCheck, XCircle, Eye, EyeOff, Phone, MapPin } from 'lucide-react'
+import { FileText, ScrollText, Users, User, KeyRound, Clock, CheckCircle, LogOut, Bell, Calendar, UserCheck, XCircle, Eye, EyeOff, Phone, MapPin, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { logoutUser } from '../services/slice/loginSlice'
 import AdminLayout from "../components/AdminLayout"
 import { fetchVisitsForApprovalApi, updateVisitApprovalApi } from '../services/approvalApi'
 import AdminAllVisits from './AllData'
@@ -13,6 +15,7 @@ const VisitorManagement = () => {
     const [toast, setToast] = useState({ show: false, message: "", type: "" })
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const navigate = useNavigate()
+    const dispatch = useDispatch()
 
     const [pendingVisits, setPendingVisits] = useState([])
     const [approvedVisits, setApprovedVisits] = useState([])
@@ -137,17 +140,21 @@ const VisitorManagement = () => {
     };
 
     const handleLogout = () => {
-        // clear storage
-        localStorage.clear();
-        // sessionStorage.removeItem("quickTaskLoginDone");
+        // clear storage safely so we don't wipe our DB
+        localStorage.removeItem("user-name");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email_id");
+        localStorage.removeItem("isLoggedIn");
+        sessionStorage.clear();
 
         // clear react state (THIS WAS MISSING)
         setIsLoggedIn(false);
         setUsername("");
         setUserRole("");
+        dispatch(logoutUser());
 
         // redirect
-        navigate("/dashboard/quick-task", { replace: true });
+        navigate("/login", { replace: true });
     };
 
     const handleApproveVisit = (id) => {
@@ -171,11 +178,13 @@ const VisitorManagement = () => {
         const getImageUrl = (image) => {
             if (!image) return "/user.png";
 
+            // If it's already a full URL (http/https), return as is
             if (typeof image === "string" && image.startsWith("http")) {
                 return image;
             }
 
-            return "/user.png";
+            // For localStorage base64 images, return as is
+            return image;
         };
 
 
@@ -193,7 +202,7 @@ const VisitorManagement = () => {
                 {/* Header Row - Clean Design */}
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-sm font-semibold border border-blue-200">
+                        <span className="bg-sky-50 text-sky-700 px-2 py-1 rounded-lg text-sm font-semibold border border-sky-200">
                             SRM-{visit.id}
                         </span>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${visit.status === 'pending'
@@ -214,7 +223,7 @@ const VisitorManagement = () => {
                         <div className="space-y-2">
                             <h3 className="font-bold text-gray-900 text-lg">{visit.visitorName}</h3>
                             <div className="flex items-center text-sm text-gray-700">
-                                <Phone className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />
+                                <Phone className="h-4 w-4 text-sky-500 mr-2 flex-shrink-0" />
                                 <span className="font-medium">{visit.mobileNumber}</span>
                             </div>
                         </div>
@@ -290,7 +299,7 @@ const VisitorManagement = () => {
                     {/* Right Side - Visitor Photo with Click to View */}
                     <div className="flex justify-center md:justify-end">
                         <div
-                            className="w-28 h-28 bg-gray-50 rounded-2xl border-2 border-gray-200 overflow-hidden flex items-center justify-center shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-blue-300 relative group"
+                            className="w-28 h-28 bg-gray-50 rounded-2xl border-2 border-gray-200 overflow-hidden flex items-center justify-center shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-sky-300 relative group"
                             onClick={handleViewImage}
                             title="Click to view photo"
                         >
@@ -422,19 +431,26 @@ const VisitorManagement = () => {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
                             <div className="flex items-center gap-3">
-                                <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-sm">
+                                <button
+                                    onClick={() => navigate("/dashboard/quick-task")}
+                                    className="p-2 bg-white text-gray-700 hover:bg-gray-50 rounded-xl border border-gray-200 transition-all shadow-sm hover:shadow-md"
+                                    title="Back"
+                                >
+                                    <ArrowLeft className="h-5 w-5" />
+                                </button>
+                                <div className="p-3 bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl shadow-sm">
                                     <UserCheck className="h-5 w-5 text-white" />
                                 </div>
                                 <div>
                                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                                        Welcome, {username} Sir
+                                        Welcome, {username} 
                                     </h1>
                                     <p className="text-gray-600 text-sm">Visitor Management Dashboard</p>
                                 </div>
                             </div>
                             <button
                                 onClick={handleLogout}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500 text-white font-semibold shadow-sm hover:bg-red-600 transition-all"
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 text-white font-semibold shadow-sm hover:bg-sky-600 transition-all"
                             >
                                 <LogOut className="h-4 w-4" />
                                 Logout
@@ -450,7 +466,7 @@ const VisitorManagement = () => {
                                 <button
                                     onClick={() => setActiveTab("Requests")}
                                     className={`py-3 px-4 text-base font-semibold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === "Requests"
-                                        ? "bg-blue-500 text-white shadow-sm"
+                                        ? "bg-sky-500 text-white shadow-sm"
                                         : "bg-white text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
@@ -485,8 +501,8 @@ const VisitorManagement = () => {
                             <div>
                                 {isLoading ? (
                                     <div className="flex justify-center items-center py-8">
-                                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                                        <div className="flex items-center gap-2 text-sky-600 text-sm">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-sky-600 border-t-transparent"></div>
                                             <span>Loading visitors...</span>
                                         </div>
                                     </div>

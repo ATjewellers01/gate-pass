@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   CheckCircle2,
@@ -9,8 +9,11 @@ import {
   AlertCircle,
   Phone,
   UserCheck,
-  MapPin
+  MapPin,
+  Bell,
+  ArrowLeft
 } from "lucide-react"
+import Footer from "../components/Footer"
 import { fetchGatePassesApi, closeGatePassApi } from "../services/cloasePassApi";
 
 const GatePassClosure = () => {
@@ -22,11 +25,11 @@ const GatePassClosure = () => {
   const [error, setError] = useState(null)
   const [toast, setToast] = useState({ show: false, message: "", type: "" })
   const [closingPasses, setClosingPasses] = useState(new Set())
+  const previousApprovedRef = useRef(null)
 
-
-  const fetchGatePassData = useCallback(async () => {
+  const fetchGatePassData = useCallback(async (isPolling = false) => {
     try {
-      setLoading(true);
+      if (!isPolling) setLoading(true);
       setError(null);
 
       const res = await fetchGatePassesApi();
@@ -40,20 +43,36 @@ const GatePassClosure = () => {
         (r) => r.gate_pass_closed
       );
 
+      // Check for new approved passes
+      const currentApprovedCount = pending.filter(r => r.approval_status?.toLowerCase() === "approved").length;
+      
+      if (isPolling && previousApprovedRef.current !== null && currentApprovedCount > previousApprovedRef.current) {
+         showToast("A new gate pass was just approved!", "info");
+      }
+
+      previousApprovedRef.current = currentApprovedCount;
+
       setPendingGatePasses(pending);
       setHistoryGatePasses(history);
 
     } catch (err) {
-      setError("Failed to load gate passes");
+      if (!isPolling) setError("Failed to load gate passes");
       setPendingGatePasses([]);
       setHistoryGatePasses([]);
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchGatePassData()
+    fetchGatePassData();
+    
+    // Polling interval (every 5 seconds)
+    const intervalId = setInterval(() => {
+        fetchGatePassData(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, [fetchGatePassData])
 
   const showToast = (message, type) => {
@@ -94,35 +113,34 @@ const GatePassClosure = () => {
   const getImageUrl = (image) => {
     if (!image) return "/user.png";
 
-    // S3 URL
+    // If it's already a full URL (http/https), return as is
     if (typeof image === "string" && image.startsWith("http")) {
       return image;
     }
 
-    return "/user.png";
+    // For localStorage base64 images, return as is
+    return image;
   };
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-white pb-16">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 p-2 sm:p-4">
         {/* Header with Refresh Button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center justify-center">
-            <div className="flex-shrink-0 mr-6">
+            <div className="flex items-center gap-2 mr-4 sm:mr-6">
               <button
-                onClick={() => navigate('/login')}
-                className="flex items-center justify-center w-10 h-10 bg-white text-orange-600 hover:bg-orange-50 rounded-lg border border-orange-200 transition-all shadow-sm hover:shadow-md"
-                title="Go back to login"
+                onClick={() => navigate("/dashboard/quick-task")}
+                className="flex items-center justify-center w-10 h-10 bg-white text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-200 transition-all shadow-sm hover:shadow-md"
+                title="Back"
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
+                <ArrowLeft className="h-5 w-5" />
               </button>
             </div>
 
             <div className="justify-center py-4 sm:py-6">
-              <h1 className="text-3xl sm:text-3xl md:text-3xl font-semibold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
                 Close Gate Pass
               </h1>
             </div>
@@ -132,7 +150,7 @@ const GatePassClosure = () => {
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center justify-center w-10 h-10 bg-white text-orange-600 hover:bg-orange-50 rounded-lg border border-orange-200 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center w-10 h-10 bg-white text-sky-600 hover:bg-sky-50 rounded-lg border border-sky-200 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             title="Refresh data"
           >
             <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
@@ -140,13 +158,13 @@ const GatePassClosure = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-orange-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-orange-200/50 overflow-hidden">
+        <div className="bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 overflow-hidden">
           <div className="grid grid-cols-2">
             <button
               onClick={() => setActiveTab("pending")}
               className={`py-3 sm:py-4 px-2 sm:px-4 text-center transition-all ${activeTab === "pending"
-                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-                : "bg-orange-100/50 text-orange-700 hover:bg-orange-200/50"
+                ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white"
+                : "bg-sky-100/50 text-sky-700 hover:bg-sky-200/50"
                 }`}
             >
               <div className="flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base font-medium">
@@ -157,8 +175,8 @@ const GatePassClosure = () => {
             <button
               onClick={() => setActiveTab("history")}
               className={`py-3 sm:py-4 px-2 sm:px-4 text-center transition-all ${activeTab === "history"
-                ? "bg-gradient-to-r from-emerald-400 to-teal-500 text-white"
-                : "bg-orange-100/50 text-orange-700 hover:bg-orange-200/50"
+                ? "bg-gradient-to-r from-sky-400 to-blue-400 text-white"
+                : "bg-sky-100/50 text-sky-700 hover:bg-sky-200/50"
                 }`}
             >
               <div className="flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base font-medium">
@@ -171,9 +189,9 @@ const GatePassClosure = () => {
 
         {/* Content */}
         {loading ? (
-          <div className="bg-orange-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-orange-200/50 p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent mb-2"></div>
-            <p className="text-orange-700 text-sm">Loading data...</p>
+          <div className="bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 p-8 text-center">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-sky-500 border-t-transparent mb-2"></div>
+            <p className="text-sky-700 text-sm">Loading data...</p>
           </div>
         ) : error ? (
           <div className="bg-orange-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-orange-200/50 p-6 text-center">
@@ -187,12 +205,12 @@ const GatePassClosure = () => {
             </button>
           </div>
         ) : currentData.length === 0 ? (
-          <div className="bg-orange-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-orange-200/50 p-8 text-center">
-            <DoorClosed className="h-12 w-12 text-orange-400 mx-auto mb-3" />
-            <h3 className="font-medium text-orange-700 mb-1">
+          <div className="bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 p-8 text-center">
+            <DoorClosed className="h-12 w-12 text-sky-400 mx-auto mb-3" />
+            <h3 className="font-medium text-sky-700 mb-1">
               {activeTab === "pending" ? "No pending gate passes" : "No history records"}
             </h3>
-            <p className="text-orange-600 text-sm">
+            <p className="text-sky-600 text-sm">
               {activeTab === "pending"
                 ? ""
                 : "No completed gate passes found"}
@@ -206,19 +224,19 @@ const GatePassClosure = () => {
               return (
                 <div
                   key={gatePass.id}
-                  className={`bg-orange-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-orange-200/50 p-3 transition-all duration-300 ${isClosing ? 'opacity-70 bg-orange-100' : 'hover:shadow-md hover:border-orange-300'
+                  className={`bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 p-3 transition-all duration-300 ${isClosing ? 'opacity-70 bg-sky-100' : 'hover:shadow-md hover:border-sky-300'
                     }`}
                 >
                   {/* Header Row */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="bg-white text-orange-700 px-2 py-0.5 rounded text-xs font-semibold border border-orange-200">
+                      <span className="bg-white text-sky-700 px-2 py-0.5 rounded text-xs font-semibold border border-sky-200">
                         SRM-{gatePass.id}
                       </span>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${gatePass.approval_status.toLowerCase() === "approved"
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-sky-500 text-white"
                         : gatePass.approval_status.toLowerCase() === "rejectet"
-                          ? "bg-amber-500 text-white"
+                          ? "bg-blue-400 text-white"
                           : "bg-gray-500 text-white"
                         }`}>
                         {gatePass.approval_status}
@@ -226,13 +244,13 @@ const GatePassClosure = () => {
                     </div>
 
                     {/* Close Button - Top Right, Smaller Width */}
-                    {activeTab === "pending" && (!gatePass.gate_pass_closed || gatePass.gate_pass_closed === '') && (
+                    {activeTab === "pending" && gatePass.approval_status?.toLowerCase() === "approved" && (!gatePass.gate_pass_closed || gatePass.gate_pass_closed === '') && (
                       <button
                         onClick={() => handleCloseGatePass(gatePass.id)}
                         disabled={isClosing}
                         className={`w-auto px-3 py-1.5 rounded text-xs font-medium transition-all shadow-sm flex items-center gap-1.5 ${isClosing
                           ? 'bg-gray-400 text-white cursor-not-allowed'
-                          : 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white hover:shadow-md transform hover:scale-105'
+                          : 'bg-gradient-to-r from-red-500 to-sky-500 hover:from-red-600 hover:to-sky-600 text-white hover:shadow-md transform hover:scale-105'
                           }`}
                       >
                         {isClosing ? (
@@ -281,7 +299,7 @@ const GatePassClosure = () => {
                       </div>
 
                       <div className="flex items-start text-xs sm:text-sm text-gray-700">
-                        <div className="h-3 w-3 text-orange-500 mr-1.5 mt-0.5 flex-shrink-0">📅</div>
+                        <div className="h-3 w-3 text-sky-500 mr-1.5 mt-0.5 flex-shrink-0">📅</div>
                         <div>
                           <span className="font-medium">Visit Date: </span>
                           <span className="text-gray-600">
@@ -362,16 +380,24 @@ const GatePassClosure = () => {
       {/* Toast */}
       {toast.show && (
         <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
-          <div className={`max-w-sm w-full px-4 py-3 rounded-lg shadow-lg ${toast.type === "success" ? "bg-emerald-500" :
-            toast.type === "warning" ? "bg-amber-500" : "bg-red-500"
-            } text-white`}>
+          <div className={`max-w-sm w-full px-4 py-3 rounded-lg shadow-lg border text-white ${
+            toast.type === "success" ? "bg-sky-500 border-sky-600" :
+            toast.type === "warning" ? "bg-blue-400 border-blue-500" :
+            toast.type === "info" ? "bg-sky-400 border-sky-500" :
+            "bg-red-500 border-red-600"
+            }`}>
             <div className="flex items-center text-sm">
-              <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span>{toast.message}</span>
+              {toast.type === 'info' ? (
+                 <Bell className="h-5 w-5 mr-3 flex-shrink-0 animate-bounce" />
+              ) : (
+                 <CheckCircle2 className="h-5 w-5 mr-3 flex-shrink-0" />
+              )}
+              <span className="font-medium">{toast.message}</span>
             </div>
           </div>
         </div>
       )}
+      <Footer />
     </div>
   )
 }

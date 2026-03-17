@@ -45,6 +45,8 @@ const LoginPage = () => {
 
             if (userData.role === "admin" || userData.user_name?.toUpperCase() === "AAKASH AGRAWAL") {
                 navigate("/dashboard/license", { replace: true });
+            } else if (userData.role === "guard") {
+                navigate("/dashboard/quick-task", { replace: true });
             } else {
                 navigate("/dashboard/license", { replace: true });
             }
@@ -70,12 +72,12 @@ const LoginPage = () => {
 
     return (
         <AdminLayout>
-            <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-                <div className="w-full max-w-md shadow-2xl border border-indigo-100 rounded-2xl bg-white overflow-hidden">
+            <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-50 via-white to-blue-50 p-4">
+                <div className="w-full max-w-md shadow-2xl border border-sky-100 rounded-2xl bg-white overflow-hidden">
                     {/* Typing Effect Header */}
                     <div className="px-8 pt-6 pb-2 text-center">
                         <div className="flex justify-center items-center">
-                            <h1 className="text-2xl font-bold   text-red-500">
+                            <h1 className="text-2xl font-bold   text-sky-600">
                                 Approve Gatepass
                             </h1>
                         </div>
@@ -85,7 +87,7 @@ const LoginPage = () => {
                         {/* Username Field with Animation */}
                         <div className="relative group">
                             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-                                <i className="fas fa-user mr-2 text-red-500"></i> Enter your username
+                                <i className="fas fa-user mr-2 text-sky-500"></i> Enter your username
                             </label>
                             <div className="relative">
                                 <input
@@ -115,7 +117,7 @@ const LoginPage = () => {
                         {/* Password Field with Animation */}
                         <div className="relative group">
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-                                <i className="fas fa-key mr-2 text-red-500"></i> Enter your password
+                                <i className="fas fa-key mr-2 text-sky-500"></i> Enter your password
                             </label>
                             <div className="relative">
                                 <input
@@ -139,7 +141,7 @@ const LoginPage = () => {
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword((prev) => !prev)}
-                                            className="text-gray-500 hover:text-blue-500 focus:outline-none"
+                                            className="text-gray-500 hover:text-sky-500 focus:outline-none"
                                         >
                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
@@ -154,11 +156,11 @@ const LoginPage = () => {
                             <button
                                 type="submit"
                                 disabled={isLoginLoading}
-                                className="w-full py-3.5 px-4 bg-gradient-to-r from-red-400 to-red-400 
+                                className="w-full py-3.5 px-4 bg-gradient-to-r from-sky-400 to-blue-500 
                        text-white font-medium rounded-xl shadow-lg hover:shadow-xl 
                        transform hover:-translate-y-0.5 transition-all duration-300 
                        disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                       focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
                             >
                                 {isLoginLoading ? (
                                     <span className="flex items-center justify-center">
@@ -169,7 +171,7 @@ const LoginPage = () => {
                                         Logging...
                                     </span>
                                 ) : (
-                                    <span className="flex items-center justify-center text-black">
+                                    <span className="flex items-center justify-center text-white">
                                         <i className="fas fa-sign-in-alt mr-2"></i>
                                         Login
                                     </span>

@@ -1,45 +1,46 @@
-import api from "./axiosInstance.js";
-
+import { getPersons, savePerson, updatePerson, deletePerson } from "./localDb";
 
 export const fetchPersonsApi = async () => {
-    try {
-        const response = await api.get("/persons");
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching persons", error);
-        return [];
-    }
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const data = getPersons();
+            resolve({ data });
+        }, 300);
+    });
 };
-
 
 export const createPersonApi = async (payload) => {
-    try {
-        const response = await api.post("/persons", payload);
-        return response.data;
-    } catch (error) {
-        console.error("Error creating person", error);
-        throw error;
-    }
+    return new Promise(resolve => {
+        setTimeout(() => {
+            // Mapping from personToMeet -> person_to_meet for consistency
+            const newPerson = savePerson({
+                person_to_meet: payload.personToMeet,
+                phone: payload.phone,
+                password: payload.password || ""
+            });
+            resolve({ data: newPerson });
+        }, 300);
+    });
 };
-
 
 export const updatePersonApi = async (id, payload) => {
-    try {
-        const response = await api.put(`/persons/${id}`, payload);
-        return response.data;
-    } catch (error) {
-        console.error("Error updating person", error);
-        throw error;
-    }
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const updated = updatePerson(id, {
+                person_to_meet: payload.personToMeet,
+                phone: payload.phone,
+                password: payload.password || ""
+            });
+            resolve({ data: updated });
+        }, 300);
+    });
 };
 
-
 export const deletePersonApi = async (id) => {
-    try {
-        const response = await api.delete(`/persons/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error deleting person", error);
-        throw error;
-    }
+    return new Promise(resolve => {
+        setTimeout(() => {
+            deletePerson(id);
+            resolve({ data: { success: true } });
+        }, 300);
+    });
 };

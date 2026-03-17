@@ -1,7 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { fetchAllVisitorsApi } from "../services/allVisitors.js";
-import { User, Eye, Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { updateVisitApprovalApi } from "../services/approvalApi.js";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logoutUser } from "../services/slice/loginSlice";
+import { User, Eye, Search, Filter, Download, ChevronLeft, ChevronRight, CheckCircle, XCircle, Bell, LogOut } from "lucide-react";
 import {
     fetchPersonsApi,
     createPersonApi,
@@ -12,6 +16,8 @@ import {
 
 
 const AdminAllVisits = () => {
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -21,27 +27,67 @@ const AdminAllVisits = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [showPersonModal, setShowPersonModal] = useState(false);
     const [persons, setPersons] = useState([]);
-    const [personForm, setPersonForm] = useState({ personToMeet: "", phone: "" });
+    const [personForm, setPersonForm] = useState({ personToMeet: "", phone: "", password: "" });
     const [editingId, setEditingId] = useState(null);
+    const [toast, setToast] = useState({ show: false, message: "", type: "" });
+    const previousPendingRef = useRef(null);
 
     const itemsPerPage = 10;
 
-    const fetchData = async () => {
+    const fetchData = async (isPolling = false) => {
         try {
-            setLoading(true);
+            if (!isPolling) setLoading(true);
             const res = await fetchAllVisitorsApi();
             const rows = res.data?.data || res.data || [];
-            setData(Array.isArray(rows) ? rows : []);
+            const visitors = Array.isArray(rows) ? rows : [];
+            setData(visitors);
+
+            // Check for new pending requests using ref to avoid stale closures
+            const currentPendingCount = visitors.filter(v => v.approval_status?.toLowerCase() === 'pending').length;
+
+            if (isPolling && previousPendingRef.current !== null && currentPendingCount > previousPendingRef.current) {
+                showToast("New visitor request received!", "info");
+            }
+
+            // Always update the ref after checking
+            previousPendingRef.current = currentPendingCount;
+
         } catch (err) {
-            setError("Failed to load data");
+            if (!isPolling) setError("Failed to load data");
         } finally {
-            setLoading(false);
+            if (!isPolling) setLoading(false);
         }
+    };
+
+    const handleAction = async (id, status) => {
+        try {
+            await updateVisitApprovalApi({ id, status, approvedBy: "admin" });
+            fetchData(); // Refresh data after action
+        } catch (err) {
+            console.error("Failed to update status", err);
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("user-name");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email_id");
+        localStorage.removeItem("isLoggedIn");
+        sessionStorage.clear();
+        dispatch(logoutUser());
+        navigate("/login", { replace: true });
     };
 
     useEffect(() => {
         fetchData();
-    }, []);
+
+        // Polling interval (every 5 seconds)
+        const intervalId = setInterval(() => {
+            fetchData(true);
+        }, 5000);
+
+        return () => clearInterval(intervalId);
+    }, []); // Empty dependency array because ref is mutable
 
     const loadPersons = async () => {
         const res = await fetchPersonsApi();
@@ -65,6 +111,11 @@ const AdminAllVisits = () => {
         setSelectedImage("");
     };
 
+    const showToast = (message, type) => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: "", type: "" }), 4000);
+    };
+
     const filteredData = data.filter(item =>
         Object.values(item).some(value =>
             value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -80,7 +131,7 @@ const AdminAllVisits = () => {
         return (
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
                 </div>
             </div>
         );
@@ -112,11 +163,14 @@ const AdminAllVisits = () => {
     const getImageUrl = (image) => {
         if (!image) return "/user.png";
 
+        // If it's already a full URL (http/https), return as is
         if (image.startsWith("http")) {
             return image;
         }
 
-        return `${import.meta.env.VITE_API_BASE_URL}/uploads/${image}`;
+        // For localStorage base64 images or any other string, return as is
+        // or default to user.png if it's not a valid image
+        return image;
     };
 
 
@@ -143,9 +197,16 @@ const AdminAllVisits = () => {
                         </div>
                         <button
                             onClick={() => setShowPersonModal(true)}
-                            className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                            className="px-4 py-2 bg-sky-500 text-white rounded-lg text-sm font-medium hover:bg-sky-700"
                         >
                             + Add / Edit Person
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-sky-600 border border-sky-200 rounded-lg text-sm font-medium hover:bg-sky-50 shadow-sm transition-colors"
+                        >
+                            <LogOut className="w-4 h-4 cursor-pointer pointer-events-none" />
+                            <span className="hidden sm:inline">Logout</span>
                         </button>
                     </div>
 
@@ -263,6 +324,22 @@ const AdminAllVisits = () => {
                                                         {v.gate_pass_closed ? 'Gate Pass Closed' : 'Gate Pass Open'}
                                                     </div>
                                                 </div>
+                                                {v.approval_status?.toLowerCase() === 'pending' && (
+                                                    <div className="flex gap-2 mt-2">
+                                                        <button
+                                                            onClick={() => handleAction(v.id, "approved")}
+                                                            className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded border border-green-200 text-xs font-medium transition-colors"
+                                                        >
+                                                            <CheckCircle className="w-3 h-3" /> Approve
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleAction(v.id, "rejected")}
+                                                            className="flex items-center gap-1 px-3 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded border border-red-200 text-xs font-medium transition-colors"
+                                                        >
+                                                            <XCircle className="w-3 h-3" /> Reject
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -353,7 +430,7 @@ const AdminAllVisits = () => {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <p className="text-xs text-gray-500">Meeting Person</p>
-                                    <p className="text-sm font-medium">{v.person_to_meet}</p>
+                                    <p className="text-sm font-medium text-sky-700">{v.person_to_meet}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Visit Date</p>
@@ -387,6 +464,23 @@ const AdminAllVisits = () => {
                                 <div>
                                     <p className="text-xs text-gray-500">Approved By</p>
                                     <p className="text-sm">{v.approved_by}</p>
+                                </div>
+                            )}
+
+                            {v.approval_status?.toLowerCase() === 'pending' && (
+                                <div className="flex gap-2 pt-2 border-t border-gray-100 mt-3">
+                                    <button
+                                        onClick={() => handleAction(v.id, "approved")}
+                                        className="flex-1 flex justify-center items-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded border border-green-200 text-sm font-medium transition-colors"
+                                    >
+                                        <CheckCircle className="w-4 h-4" /> Approve
+                                    </button>
+                                    <button
+                                        onClick={() => handleAction(v.id, "rejected")}
+                                        className="flex-1 flex justify-center items-center gap-2 px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded border border-red-200 text-sm font-medium transition-colors"
+                                    >
+                                        <XCircle className="w-4 h-4" /> Reject
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -464,14 +558,14 @@ const AdminAllVisits = () => {
 
                         {/* Form */}
                         <div className="mb-8 p-4 bg-gray-50 rounded-xl shadow-sm">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <input
                                     placeholder="Person Name"
                                     value={personForm.personToMeet}
                                     onChange={(e) =>
                                         setPersonForm({ ...personForm, personToMeet: e.target.value })
                                     }
-                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 shadow-sm"
+                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-sky-500 shadow-sm"
                                 />
                                 <input
                                     placeholder="Phone"
@@ -479,7 +573,16 @@ const AdminAllVisits = () => {
                                     onChange={(e) =>
                                         setPersonForm({ ...personForm, phone: e.target.value })
                                     }
-                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 shadow-sm"
+                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-sky-500 shadow-sm"
+                                />
+                                <input
+                                    placeholder="Password (for login)"
+                                    type="password"
+                                    value={personForm.password}
+                                    onChange={(e) =>
+                                        setPersonForm({ ...personForm, password: e.target.value })
+                                    }
+                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-sky-500 shadow-sm"
                                 />
                                 <button
                                     onClick={async () => {
@@ -488,14 +591,15 @@ const AdminAllVisits = () => {
                                         } else {
                                             await createPersonApi(personForm);
                                         }
-                                        setPersonForm({ personToMeet: "", phone: "" });
+                                        setPersonForm({ personToMeet: "", phone: "", password: "" });
                                         setEditingId(null);
                                         loadPersons();
                                     }}
-                                    className={`px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-shadow ${editingId
-                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                        : "bg-green-600 hover:bg-green-700 text-white"
-                                        }`}
+                                    className={`px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-shadow ${
+                                        editingId
+                                            ? "bg-sky-600 hover:bg-sky-700 text-white"
+                                            : "bg-sky-600 hover:bg-sky-700 text-white"
+                                    }`}
                                 >
                                     {editingId ? "Update" : "Add"}
                                 </button>
@@ -530,7 +634,8 @@ const AdminAllVisits = () => {
                                                                 setEditingId(p.id);
                                                                 setPersonForm({
                                                                     personToMeet: p.person_to_meet,
-                                                                    phone: p.phone
+                                                                    phone: p.phone,
+                                                                    password: p.password || ""
                                                                 });
                                                             }}
                                                             className="text-blue-600 hover:text-blue-800 font-medium"
@@ -561,6 +666,25 @@ const AdminAllVisits = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast Notification */}
+            {toast.show && (
+                <div className="fixed top-4 sm:top-6 right-4 sm:right-6 left-4 sm:left-auto mx-auto sm:mx-0 max-w-sm z-50">
+                    <div className={`px-4 py-3 rounded-xl shadow-lg border text-white flex items-center gap-3 ${toast.type === "success" ? "bg-green-500 border-green-600" :
+                        toast.type === "info" ? "bg-blue-500 border-blue-600" :
+                            "bg-red-500 border-red-600"
+                        }`}>
+                        <Bell className="w-5 h-5 animate-bounce" />
+                        <span className="text-sm font-medium">{toast.message}</span>
+                        <button
+                            onClick={() => setToast({ show: false, message: "", type: "" })}
+                            className="text-white ml-auto p-1 rounded hover:bg-white/20"
+                        >
+                            <XCircle className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
             )}
