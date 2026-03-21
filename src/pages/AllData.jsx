@@ -5,17 +5,18 @@ import { updateVisitApprovalApi } from "../services/approvalApi.js";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logoutUser } from "../services/slice/loginSlice";
-import { User, Eye, Search, Filter, Download, ChevronLeft, ChevronRight, CheckCircle, XCircle, Bell, LogOut } from "lucide-react";
+import { User, Eye, Search, Filter, Download, ChevronLeft, ChevronRight, CheckCircle, XCircle, Bell, LogOut, Clock, ArrowLeft, QrCode } from "lucide-react";
 import {
     fetchPersonsApi,
     createPersonApi,
     updatePersonApi,
     deletePersonApi
 } from "../services/personApi";
+import QRCodeModal from "../components/QRCodeModal";
 
 
 
-const AdminAllVisits = () => {
+const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = false }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const [data, setData] = useState([]);
@@ -30,6 +31,8 @@ const AdminAllVisits = () => {
     const [personForm, setPersonForm] = useState({ personToMeet: "", phone: "", password: "" });
     const [editingId, setEditingId] = useState(null);
     const [toast, setToast] = useState({ show: false, message: "", type: "" });
+    const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+    const [activeMainTab, setActiveMainTab] = useState(initialTab);
     const previousPendingRef = useRef(null);
 
     const itemsPerPage = 10;
@@ -95,10 +98,10 @@ const AdminAllVisits = () => {
     };
 
     useEffect(() => {
-        if (showPersonModal) {
+        if (showPersonModal || activeMainTab === "Employees") {
             loadPersons();
         }
-    }, [showPersonModal]);
+    }, [showPersonModal, activeMainTab]);
 
 
     const handleImageClick = (imageUrl) => {
@@ -122,10 +125,16 @@ const AdminAllVisits = () => {
         )
     );
 
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const filteredPersons = persons.filter(p => 
+        p.person_to_meet?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.phone?.includes(searchTerm)
+    );
+
+    const activeList = activeMainTab === "Visitors" ? filteredData : filteredPersons;
+    const totalPages = Math.ceil(activeList.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const currentData = filteredData.slice(startIndex, endIndex);
+    const currentData = activeList.slice(startIndex, endIndex);
 
     if (loading) {
         return (
@@ -181,25 +190,51 @@ const AdminAllVisits = () => {
             <div className="mb-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">All Visitors (Admin)</h1>
-                        <p className="text-gray-600 mt-1">Total {data.length} visitors found</p>
+                        <div className="flex items-center gap-3">
+                            {readOnly && (
+                                <button 
+                                    onClick={() => navigate("/dashboard/quick-task")}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <ArrowLeft className="w-5 h-5 text-gray-600" />
+                                </button>
+                            )}
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                {readOnly ? "Employee Status" : "Admin Dashboard"}
+                            </h1>
+                        </div>
+                        <p className="text-gray-600 mt-1">
+                            {activeMainTab === "Visitors" 
+                                ? `Total ${data.length} visitors found` 
+                                : `Total ${persons.length} employees found`
+                            }
+                        </p>
                     </div>
                     <div className="flex gap-3">
                         <div className="relative flex-1 md:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
                             <input
                                 type="text"
-                                placeholder="Search visitors..."
+                                placeholder={activeMainTab === "Visitors" ? "Search visitors..." : "Search employees..."}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                             />
                         </div>
+                        {!readOnly && (
+                            <button
+                                onClick={() => setShowPersonModal(true)}
+                                className="px-4 py-2 bg-sky-500 text-white rounded-lg text-sm font-medium hover:bg-sky-700"
+                            >
+                                + Add / Edit Person
+                            </button>
+                        )}
                         <button
-                            onClick={() => setShowPersonModal(true)}
-                            className="px-4 py-2 bg-sky-500 text-white rounded-lg text-sm font-medium hover:bg-sky-700"
+                            onClick={() => setIsQRModalOpen(true)}
+                            className="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors border border-sky-200 shadow-sm"
+                            title="Show Visitor QR Code"
                         >
-                            + Add / Edit Person
+                            <QrCode className="w-5 h-5" />
                         </button>
                         <button
                             onClick={handleLogout}
@@ -212,32 +247,85 @@ const AdminAllVisits = () => {
 
                 </div>
 
+                {/* Tab Navigation */}
+                {!hideTabs && (
+                    <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+                        <button
+                            onClick={() => setActiveMainTab("Visitors")}
+                            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeMainTab === "Visitors"
+                                ? "bg-white text-sky-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            Visitors
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveMainTab("Employees");
+                                loadPersons();
+                            }}
+                            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeMainTab === "Employees"
+                                ? "bg-white text-sky-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            Employees
+                        </button>
+                    </div>
+                )}
+
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="text-sm text-gray-600 mb-1">Total Visitors</div>
-                        <div className="text-2xl font-bold text-gray-900">{data.length}</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="text-sm text-gray-600 mb-1">Pending</div>
-                        <div className="text-2xl font-bold text-yellow-600">
-                            {data.filter(v => v.approval_status?.toLowerCase() === 'pending').length}
+                {activeMainTab === "Visitors" ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Total Visitors</div>
+                            <div className="text-2xl font-bold text-gray-900">{data.length}</div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Pending</div>
+                            <div className="text-2xl font-bold text-yellow-600">
+                                {data.filter(v => v.approval_status?.toLowerCase() === 'pending').length}
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Approved</div>
+                            <div className="text-2xl font-bold text-green-600">
+                                {data.filter(v => v.approval_status?.toLowerCase() === 'approved').length}
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Rejected</div>
+                            <div className="text-2xl font-bold text-red-600">
+                                {data.filter(v => v.approval_status?.toLowerCase() === 'rejected').length}
+                            </div>
                         </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="text-sm text-gray-600 mb-1">Approved</div>
-                        <div className="text-2xl font-bold text-green-600">
-                            {data.filter(v => v.approval_status?.toLowerCase() === 'approved').length}
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Total Employees</div>
+                            <div className="text-2xl font-bold text-gray-900">{persons.length}</div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Available</div>
+                            <div className="text-2xl font-bold text-green-600">
+                                {persons.filter(p => p.status !== 'Absent').length}
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Absent</div>
+                            <div className="text-2xl font-bold text-red-600">
+                                {persons.filter(p => p.status === 'Absent').length}
+                            </div>
                         </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="text-sm text-gray-600 mb-1">Rejected</div>
-                        <div className="text-2xl font-bold text-red-600">
-                            {data.filter(v => v.approval_status?.toLowerCase() === 'rejected').length}
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
+
+            {/* Content Logic */}
+            {activeMainTab === "Visitors" ? (
+                <>
+                {/* Visitors Section */}
 
             {/* Desktop Table */}
             <div className="hidden lg:block">
@@ -513,7 +601,86 @@ const AdminAllVisits = () => {
                 )}
             </div>
 
-            {/* Image Modal */}
+                </>
+            ) : (
+                /* Employees Section */
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Employee Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {activeMainTab === "Employees" && currentData.map((p) => {
+                                    const activeMeeting = data.find(v => v.person_to_meet === p.person_to_meet && v.approval_status?.toLowerCase() === 'approved' && !v.gate_pass_closed);
+                                    const isAvailable = p.status !== 'Absent';
+                                    
+                                    return (
+                                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-medium text-gray-900">{p.person_to_meet}</div>
+                                                {activeMeeting && (
+                                                    <div className="flex items-center gap-1.5 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit border border-orange-100 italic">
+                                                        <Clock className="w-3 h-3" />
+                                                        <span>In Meeting with {activeMeeting.visitor_name}</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{p.phone}</td>
+                                            <td className="px-6 py-4">
+                                                {readOnly ? (
+                                                    <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
+                                                        isAvailable
+                                                            ? "bg-green-50 text-green-700 border-green-200"
+                                                            : "bg-red-50 text-red-700 border-red-200"
+                                                    }`}>
+                                                        {isAvailable ? 'Available' : 'Absent'}
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={async () => {
+                                                            const newStatus = isAvailable ? 'Absent' : 'Available';
+                                                            await updatePersonApi(p.id, {
+                                                                personToMeet: p.person_to_meet,
+                                                                phone: p.phone,
+                                                                password: p.password || "",
+                                                                status: newStatus
+                                                            });
+                                                            loadPersons(); // Refresh data
+                                                            showToast(`${p.person_to_meet} marked as ${newStatus}`, "success");
+                                                        }}
+                                                        className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all border-2 ${
+                                                            isAvailable
+                                                                ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                                                : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                                                        }`}
+                                                    >
+                                                        {isAvailable ? 'Available' : 'Absent'}
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                                    <span>{isAvailable ? 'Present' : 'Not in Building'}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    {persons.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">No employees found</div>
+                    )}
+                </div>
+            )}
             {showImageModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden">
@@ -688,6 +855,11 @@ const AdminAllVisits = () => {
                     </div>
                 </div>
             )}
+            {/* QR Code Modal */}
+            <QRCodeModal 
+                isOpen={isQRModalOpen} 
+                onClose={() => setIsQRModalOpen(false)} 
+            />
 
         </div>
     );

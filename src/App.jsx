@@ -7,6 +7,7 @@ import AdminAssignTask from "./pages/RequestVisit"
 import AccountDataPage from "./pages/ClosePass"
 import AdminLogin from "./pages/AdminLogin"
 import License from "./pages/ApprovelPage"
+import EmployeeStatusPage from "./pages/EmployeeStatusPage"
 
 // 🔒 Auth wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -55,6 +56,7 @@ function App() {
         <Route path="/dashboard/delegation" element={<AccountDataPage />} />
         <Route path="/dashboard/quick-task" element={<HomePage />} />
         <Route path="/dashboard/license" element={<License />} />
+        <Route path="/dashboard/employee" element={<EmployeeStatusPage />} />
 
         <Route path="*" element={<Navigate to="/dashboard/quick-task" replace />} />
 
