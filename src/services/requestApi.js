@@ -1,62 +1,54 @@
-import { saveVisitor, getVisitorByMobile } from "./localDb";
+const SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
 
 export const createVisitRequestApi = async (data) => {
-    return new Promise((resolve) => {
-        // Read the photo file as a Base64 string to store it in localStorage
-        if (data.photoFile) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64Photo = reader.result;
-                const visitorData = {
-                    visitor_name: data.visitorName,
-                    mobile_number: data.mobileNumber,
-                    visitor_address: data.visitorAddress || "",
-                    purpose_of_visit: data.purposeOfVisit || "",
-                    person_to_meet: data.personToMeet,
-                    date_of_visit: data.dateOfVisit,
-                    time_of_entry: data.timeOfEntry,
-                    visitor_photo: base64Photo
-                };
-                const saved = saveVisitor(visitorData);
-                resolve({ data: { success: true, visitorId: saved.id, message: "Mocked Visit created" } });
-            };
-            reader.readAsDataURL(data.photoFile);
-        } else {
-            const visitorData = {
-                visitor_name: data.visitorName,
-                mobile_number: data.mobileNumber,
-                visitor_address: data.visitorAddress || "",
-                purpose_of_visit: data.purposeOfVisit || "",
-                person_to_meet: data.personToMeet,
-                date_of_visit: data.dateOfVisit,
-                time_of_entry: data.timeOfEntry,
-                visitor_photo: null
-            };
-            const saved = saveVisitor(visitorData);
-            resolve({ data: { success: true, visitorId: saved.id, message: "Mocked Visit created" } });
-        }
+
+
+     console.log("FOLDER ID:", import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID); // ← add karo
+  console.log("SCRIPT URL:", import.meta.env.VITE_GOOGLE_SCRIPT_URL);
+  
+  // ✅ Clean async/await approach — no nested Promise hack
+  const base64Photo = await new Promise((resolve) => {
+    if (!data.photoFile) {
+      resolve(null); // No photo → null safely
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(data.photoFile);
+  });
+
+  const values = [
+    new Date().toLocaleString(), // A: Timestamp
+    "",                          // B: Serial No (Auto-filled by Script)
+    data.visitorName,            // C: Visitor Name
+    data.mobileNumber,           // D: Mobile Number
+    data.email || "",            // E: Email Address
+    base64Photo,                 // F: Visitor Photo (Base64 or null)
+    data.personToMeet,           // G: Person To Meet
+    data.purposeOfVisit,         // H: Purpose of Visit
+    data.timeOfEntry,            // I: Time of Entry
+    data.visitorAddress          // J: Visitor Address
+  ];
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        values: values,
+        folderId: import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID,
+      }),
     });
+
+    return { data: { success: true, message: "Submitted successfully" } };
+  } catch (error) {
+    console.error("Submission error:", error);
+    throw error;
+  }
 };
 
 export const fetchVisitorByMobileApi = async (mobile) => {
-    return new Promise((resolve) => {
-        const visitor = getVisitorByMobile(mobile);
-        if (visitor) {
-            resolve({
-                data: {
-                    success: true,
-                    found: true,
-                    data: {
-                        visitorName: visitor.visitor_name,
-                        mobileNumber: visitor.mobile_number,
-                        visitorAddress: visitor.visitor_address,
-                        purposeOfVisit: visitor.purpose_of_visit,
-                        personToMeet: visitor.person_to_meet
-                    }
-                }
-            });
-        } else {
-            resolve({ data: { success: false, found: false } });
-        }
-    });
+  return { data: { success: false, found: false } };
 };

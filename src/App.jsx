@@ -1,6 +1,7 @@
 "use client"
 
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { useSelector } from "react-redux"
 import HomePage from "./pages/HomePage"
 // import AdminDashboard from "./pages/Dashboard"
 import AdminAssignTask from "./pages/RequestVisit"
@@ -8,28 +9,16 @@ import AccountDataPage from "./pages/ClosePass"
 import AdminLogin from "./pages/AdminLogin"
 import License from "./pages/ApprovelPage"
 import EmployeeStatusPage from "./pages/EmployeeStatusPage"
+import AllVisitorsPage from "./pages/AllVisitorsPage"
+import AdminLayout from "./components/AdminLayout"
 
 // 🔒 Auth wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const location = useLocation()
+  const { isLoggedIn, userData } = useSelector((state) => state.login)
+  const role = userData?.role
 
-  const username = sessionStorage.getItem("username")
-  const role = sessionStorage.getItem("role")
-
-  // ✅ PUBLIC ROUTES (NO LOGIN REQUIRED)
-  const publicRoutes = [
-    "/dashboard/quick-task",
-    "/dashboard/assign-task",
-    "/dashboard/delegation"
-  ]
-
-  // ✅ Allow public routes
-  if (publicRoutes.some(route => location.pathname.startsWith(route))) {
-    return children
-  }
-
-  // ❌ Block if not logged in
-  if (!username) {
+  // ❌ Block if not logged in — redirect to login
+  if (!isLoggedIn) {
     return <Navigate to="/login" replace />
   }
 
@@ -50,15 +39,23 @@ function App() {
 
         <Route path="/login" element={<AdminLogin />} />
 
-        <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="assign-task" element={<AdminAssignTask />} />
+          <Route path="close-gate-pass" element={<AccountDataPage />} />
+          <Route path="quick-task" element={<HomePage />} />
+          <Route path="approval-request" element={<License />} />
+          <Route path="employee" element={<EmployeeStatusPage />} />
+          <Route path="reports" element={<AllVisitorsPage />} />
+        </Route>
 
-        <Route path="/dashboard/assign-task" element={<AdminAssignTask />} />
-        <Route path="/dashboard/delegation" element={<AccountDataPage />} />
-        <Route path="/dashboard/quick-task" element={<HomePage />} />
-        <Route path="/dashboard/license" element={<License />} />
-        <Route path="/dashboard/employee" element={<EmployeeStatusPage />} />
-
-        <Route path="*" element={<Navigate to="/dashboard/quick-task" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
 
       </Routes>
     </Router>

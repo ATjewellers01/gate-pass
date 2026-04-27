@@ -25,6 +25,8 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
     const [showImageModal, setShowImageModal] = useState(false);
     const [selectedImage, setSelectedImage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedFilter, setSelectedFilter] = useState("All");
+    const [purposeFilter, setPurposeFilter] = useState("All");
     const [currentPage, setCurrentPage] = useState(1);
     const [showPersonModal, setShowPersonModal] = useState(false);
     const [persons, setPersons] = useState([]);
@@ -72,10 +74,6 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
     };
 
     const handleLogout = () => {
-        localStorage.removeItem("user-name");
-        localStorage.removeItem("role");
-        localStorage.removeItem("email_id");
-        localStorage.removeItem("isLoggedIn");
         sessionStorage.clear();
         dispatch(logoutUser());
         navigate("/login", { replace: true });
@@ -119,11 +117,17 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
         setTimeout(() => setToast({ show: false, message: "", type: "" }), 4000);
     };
 
-    const filteredData = data.filter(item =>
-        Object.values(item).some(value =>
+    const availableFilters = ["All", ...new Set(data.map(v => v.person_to_meet).filter(Boolean))];
+    const availablePurposes = ["All", ...new Set(data.map(v => v.purpose_of_visit).filter(Boolean))];
+
+    const filteredData = data.filter(item => {
+        const matchesSearch = Object.values(item).some(value =>
             value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
+        );
+        const matchesPerson = selectedFilter === "All" || item.person_to_meet === selectedFilter;
+        const matchesPurpose = purposeFilter === "All" || item.purpose_of_visit === purposeFilter;
+        return matchesSearch && matchesPerson && matchesPurpose;
+    });
 
     const filteredPersons = persons.filter(p => 
         p.person_to_meet?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -186,97 +190,136 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            {/* Header */}
-            <div className="mb-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <div>
+            {/* Compact Single Line Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-sky-100 shadow-sm mb-6">
+                <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
                         <div className="flex items-center gap-3">
                             {readOnly && (
                                 <button 
                                     onClick={() => navigate("/dashboard/quick-task")}
-                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    className="p-1.5 hover:bg-sky-50 rounded-lg transition-colors border border-sky-100"
                                 >
-                                    <ArrowLeft className="w-5 h-5 text-gray-600" />
+                                    <ArrowLeft className="w-4 h-4 text-sky-600" />
                                 </button>
                             )}
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                {readOnly ? "Employee Status" : "Admin Dashboard"}
-                            </h1>
+                            <div>
+                                <h1 className="text-xl font-bold text-gray-800 leading-tight">
+                                    {readOnly ? "Employee Status" : "Admin Dashboard"}
+                                </h1>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">
+                                    {activeMainTab === "Visitors" ? "Visitor Analytics" : "Team Overview"}
+                                </p>
+                            </div>
                         </div>
-                        <p className="text-gray-600 mt-1">
-                            {activeMainTab === "Visitors" 
-                                ? `Total ${data.length} visitors found` 
-                                : `Total ${persons.length} employees found`
-                            }
-                        </p>
-                    </div>
-                    <div className="flex gap-3">
-                        <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <input
-                                type="text"
-                                placeholder={activeMainTab === "Visitors" ? "Search visitors..." : "Search employees..."}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20"
-                            />
-                        </div>
-                        {!readOnly && (
-                            <button
-                                onClick={() => setShowPersonModal(true)}
-                                className="px-4 py-2 bg-sky-500 text-white rounded-lg text-sm font-medium hover:bg-sky-700"
-                            >
-                                + Add / Edit Person
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setIsQRModalOpen(true)}
-                            className="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors border border-sky-200 shadow-sm"
-                            title="Show Visitor QR Code"
-                        >
-                            <QrCode className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-white text-sky-600 border border-sky-200 rounded-lg text-sm font-medium hover:bg-sky-50 shadow-sm transition-colors"
-                        >
-                            <LogOut className="w-4 h-4 cursor-pointer pointer-events-none" />
-                            <span className="hidden sm:inline">Logout</span>
-                        </button>
                     </div>
 
+                    <div className="h-8 w-[1px] bg-sky-100 mx-2 hidden lg:block"></div>
+
+                    {/* Compact Tabs */}
+                    {!hideTabs && (
+                        <div className="flex p-1 bg-sky-50/50 rounded-xl border border-sky-100">
+                            <button
+                                onClick={() => setActiveMainTab("Visitors")}
+                                className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
+                                    activeMainTab === "Visitors"
+                                        ? "bg-sky-500 text-white shadow-md shadow-sky-100"
+                                        : "text-gray-500 hover:bg-white"
+                                }`}
+                            >
+                                <User size={12} />
+                                Visitors
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setActiveMainTab("Employees");
+                                    loadPersons();
+                                }}
+                                className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
+                                    activeMainTab === "Employees"
+                                        ? "bg-sky-500 text-white shadow-md shadow-sky-100"
+                                        : "text-gray-500 hover:bg-white"
+                                }`}
+                            >
+                                <UserCheck size={12} />
+                                Employees
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                {/* Tab Navigation */}
-                {!hideTabs && (
-                    <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
-                        <button
-                            onClick={() => setActiveMainTab("Visitors")}
-                            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeMainTab === "Visitors"
-                                ? "bg-white text-sky-600 shadow-sm"
-                                : "text-gray-500 hover:text-gray-700"
-                                }`}
-                        >
-                            Visitors
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveMainTab("Employees");
-                                loadPersons();
-                            }}
-                            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeMainTab === "Employees"
-                                ? "bg-white text-sky-600 shadow-sm"
-                                : "text-gray-500 hover:text-gray-700"
-                                }`}
-                        >
-                            Employees
-                        </button>
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Search Field */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-400" size={14} />
+                        <input 
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 pr-4 py-1.5 bg-sky-50/50 border border-sky-100 rounded-xl text-xs focus:ring-2 focus:ring-sky-500/20 outline-none w-full md:w-48 lg:w-40 transition-all placeholder:text-gray-400 font-medium"
+                        />
                     </div>
-                )}
+
+                    {activeMainTab === "Visitors" && availableFilters.length > 1 && (
+                        <>
+                            {/* Filter: Person */}
+                            <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100">
+                                <Filter size={12} className="text-sky-500" />
+                                <select 
+                                    value={selectedFilter}
+                                    onChange={(e) => setSelectedFilter(e.target.value)}
+                                    className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[100px] truncate"
+                                >
+                                    {availableFilters.map(f => <option key={f} value={f}>{f}</option>)}
+                                </select>
+                            </div>
+
+                            {/* Filter: Purpose */}
+                            <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100">
+                                <select 
+                                    value={purposeFilter}
+                                    onChange={(e) => setPurposeFilter(e.target.value)}
+                                    className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[100px] truncate"
+                                >
+                                    {availablePurposes.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                        </>
+                    )}
+
+                    {!readOnly && (
+                        <button
+                            onClick={() => setShowPersonModal(true)}
+                            className="px-4 py-1.5 bg-sky-500 text-white rounded-xl text-xs font-bold hover:bg-sky-600 shadow-md shadow-sky-100 transition-all"
+                        >
+                            + Add Person
+                        </button>
+                    )}
+                    
+                    <button
+                        onClick={() => setIsQRModalOpen(true)}
+                        className="p-2 text-sky-600 hover:bg-sky-50 rounded-xl transition-colors border border-sky-200 shadow-sm"
+                        title="Show Visitor QR Code"
+                    >
+                        <QrCode className="w-4 h-4" />
+                    </button>
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-4 py-1.5 bg-white text-red-500 border border-red-100 rounded-xl text-xs font-bold hover:bg-red-50 shadow-sm transition-colors"
+                    >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+
+
 
                 {/* Stats Cards */}
                 {activeMainTab === "Visitors" ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                             <div className="text-sm text-gray-600 mb-1">Total Visitors</div>
                             <div className="text-2xl font-bold text-gray-900">{data.length}</div>
@@ -301,7 +344,7 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                             <div className="text-sm text-gray-600 mb-1">Total Employees</div>
                             <div className="text-2xl font-bold text-gray-900">{persons.length}</div>
@@ -320,367 +363,174 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
                         </div>
                     </div>
                 )}
-            </div>
 
-            {/* Content Logic */}
-            {activeMainTab === "Visitors" ? (
-                <>
-                {/* Visitors Section */}
 
-            {/* Desktop Table */}
-            <div className="hidden lg:block">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Visitor Details
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Visit Info
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Approval & Status
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Timestamps
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {currentData.map((v) => (
-                                    <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <div
-                                                    className="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden cursor-pointer mr-4"
-                                                    onClick={() => handleImageClick(getImageUrl(v.visitor_photo))}
-                                                >
-                                                    <img
-                                                        src={getImageUrl(v.visitor_photo)}
-                                                        alt={v.visitor_name}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            e.target.src = "/user.png";
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-gray-900">{v.visitor_name}</div>
-                                                    <div className="text-sm text-gray-600">{v.mobile_number}</div>
-                                                    {v.visitor_address && (
-                                                        <div className="text-xs text-gray-500 mt-1">{v.visitor_address}</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-2">
-                                                <div>
-                                                    <div className="text-sm font-medium text-gray-900">Meeting: {v.person_to_meet}</div>
-                                                    <div className="text-sm text-gray-600">Purpose: {v.purpose_of_visit || '-'}</div>
-                                                </div>
-                                                <div className="text-sm">
-                                                    <div className="font-medium text-gray-700">Date: {new Date(v.date_of_visit).toLocaleDateString("en-IN")}</div>
-                                                    <div className="text-gray-600">
-                                                        Entry: {v.time_of_entry ? new Date(`1970-01-01T${v.time_of_entry}`).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : '-'}
-                                                    </div>
-                                                    <div className="text-gray-600">
-                                                        Exit: {v.visitor_out_time ? new Date(`1970-01-01T${v.visitor_out_time}`).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : '-'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-2">
-                                                <div>
-                                                    <div className="font-medium text-gray-700 mb-1">Approval Status</div>
-                                                    {getStatusBadge(v.approval_status)}
-                                                </div>
-                                                {v.approved_by && (
-                                                    <div className="text-sm">
-                                                        <div className="text-gray-600">Approved by: {v.approved_by}</div>
-                                                        <div className="text-gray-500 text-xs">
-                                                            {v.approved_at ? new Date(v.approved_at).toLocaleString("en-IN") : '-'}
+            {/* Content Section */}
+            <div className="mt-6">
+                {activeMainTab === "Visitors" ? (
+                    <div className="space-y-6">
+                        {/* Desktop Table */}
+                        <div className="hidden lg:block">
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Visitor Details</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Visit Info</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Approval & Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Timestamps</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {currentData.map((v) => (
+                                                <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center">
+                                                            <div className="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden cursor-pointer mr-4" onClick={() => handleImageClick(getImageUrl(v.visitor_photo))}>
+                                                                <img src={getImageUrl(v.visitor_photo)} alt={v.visitor_name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = "/user.png"; }} />
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-medium text-gray-900">{v.visitor_name}</div>
+                                                                <div className="text-sm text-gray-600">{v.mobile_number}</div>
+                                                                {v.visitor_address && <div className="text-xs text-gray-500 mt-1">{v.visitor_address}</div>}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
-                                                <div className="text-sm">
-                                                    <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${v.gate_pass_closed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                                        {v.gate_pass_closed ? 'Gate Pass Closed' : 'Gate Pass Open'}
-                                                    </div>
-                                                </div>
-                                                {v.approval_status?.toLowerCase() === 'pending' && (
-                                                    <div className="flex gap-2 mt-2">
-                                                        <button
-                                                            onClick={() => handleAction(v.id, "approved")}
-                                                            className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded border border-green-200 text-xs font-medium transition-colors"
-                                                        >
-                                                            <CheckCircle className="w-3 h-3" /> Approve
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleAction(v.id, "rejected")}
-                                                            className="flex items-center gap-1 px-3 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded border border-red-200 text-xs font-medium transition-colors"
-                                                        >
-                                                            <XCircle className="w-3 h-3" /> Reject
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-1 text-sm">
-                                                {/* <div className="text-gray-600">
-                                                    <div className="font-medium">Created:</div>
-                                                    <div>{new Date(v.created_at).toLocaleString("en-IN")}</div>
-                                                </div> */}
-                                                {v.status && (
-                                                    <div className="text-gray-600">
-                                                        <div className="font-medium">Status:</div>
-                                                        <div>{v.status}</div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                            <div className="text-sm text-gray-700">
-                                Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of {filteredData.length} visitors
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                >
-                                    <ChevronLeft className="h-4 w-4 inline" /> Previous
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                >
-                                    Next <ChevronRight className="h-4 w-4 inline" />
-                                </button>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm">
+                                                        <div className="font-medium text-gray-900">Meeting: {v.person_to_meet}</div>
+                                                        <div className="text-gray-600">Purpose: {v.purpose_of_visit || '-'}</div>
+                                                        <div className="text-xs text-gray-500 mt-1">{new Date(v.date_of_visit).toLocaleDateString("en-IN")}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {getStatusBadge(v.approval_status)}
+                                                        <div className="mt-1 text-xs text-gray-500">{v.gate_pass_closed ? 'Gate Pass Closed' : 'Gate Pass Open'}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-xs text-gray-600">
+                                                        {v.approved_by && <div>By: {v.approved_by}</div>}
+                                                        {v.approved_at && <div>At: {new Date(v.approved_at).toLocaleString("en-IN")}</div>}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {totalPages > 1 && (
+                                    <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50/50">
+                                        <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50">Prev</button>
+                                        <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                                        <button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50">Next</button>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    )}
-                </div>
-            </div>
 
-            {/* Mobile Cards */}
-            <div className="lg:hidden space-y-4">
-                {currentData.map((v) => (
-                    <div key={v.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-start space-x-3">
-                                <div
-                                    className="w-16 h-16 rounded-lg border border-gray-200 overflow-hidden cursor-pointer flex-shrink-0"
-                                    onClick={() => handleImageClick(getImageUrl(v.visitor_photo))}
-                                >
-                                    <img
-                                        src={getImageUrl(v.visitor_photo)}
-                                        alt={v.visitor_name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src = "/user.png";
-                                        }}
-                                    />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900">{v.visitor_name}</h3>
-                                    <p className="text-sm text-gray-600">{v.mobile_number}</p>
-                                    <div className="mt-1">
-                                        {getStatusBadge(v.approval_status)}
+                        {/* Mobile Cards */}
+                        <div className="lg:hidden space-y-4">
+                            {currentData.map((v) => (
+                                <div key={v.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden" onClick={() => handleImageClick(getImageUrl(v.visitor_photo))}>
+                                            <img src={getImageUrl(v.visitor_photo)} alt={v.visitor_name} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-gray-900">{v.visitor_name}</div>
+                                            <div className="text-sm text-gray-600">{v.mobile_number}</div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1 text-sm text-gray-600">
+                                        <div><strong>Meeting:</strong> {v.person_to_meet}</div>
+                                        <div><strong>Status:</strong> {getStatusBadge(v.approval_status)}</div>
                                     </div>
                                 </div>
-                            </div>
-                            <button
-                                onClick={() => handleImageClick(getImageUrl(v.visitor_photo))}
-                                className="p-2 text-gray-500 hover:text-blue-600"
-                                title="View photo"
-                            >
-                                <Eye className="h-4 w-4" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <p className="text-xs text-gray-500">Meeting Person</p>
-                                    <p className="text-sm font-medium text-sky-700">{v.person_to_meet}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500">Visit Date</p>
-                                    <p className="text-sm font-medium">
-                                        {new Date(v.date_of_visit).toLocaleDateString("en-IN")}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <p className="text-xs text-gray-500">Purpose</p>
-                                <p className="text-sm">{v.purpose_of_visit || '-'}</p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <p className="text-xs text-gray-500">Entry Time</p>
-                                    <p className="text-sm">
-                                        {v.time_of_entry ? new Date(`1970-01-01T${v.time_of_entry}`).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : '-'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500">Exit Time</p>
-                                    <p className="text-sm">
-                                        {v.visitor_out_time ? new Date(`1970-01-01T${v.visitor_out_time}`).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : '-'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {v.approved_by && (
-                                <div>
-                                    <p className="text-xs text-gray-500">Approved By</p>
-                                    <p className="text-sm">{v.approved_by}</p>
-                                </div>
-                            )}
-
-                            {v.approval_status?.toLowerCase() === 'pending' && (
-                                <div className="flex gap-2 pt-2 border-t border-gray-100 mt-3">
-                                    <button
-                                        onClick={() => handleAction(v.id, "approved")}
-                                        className="flex-1 flex justify-center items-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded border border-green-200 text-sm font-medium transition-colors"
-                                    >
-                                        <CheckCircle className="w-4 h-4" /> Approve
-                                    </button>
-                                    <button
-                                        onClick={() => handleAction(v.id, "rejected")}
-                                        className="flex-1 flex justify-center items-center gap-2 px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded border border-red-200 text-sm font-medium transition-colors"
-                                    >
-                                        <XCircle className="w-4 h-4" /> Reject
-                                    </button>
+                            ))}
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-between pt-4">
+                                    <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50">Prev</button>
+                                    <button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50">Next</button>
                                 </div>
                             )}
                         </div>
                     </div>
-                ))}
-
-                {/* Mobile Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4">
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentPage === 1}
-                            className="px-4 py-2 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                        >
-                            <ChevronLeft className="h-4 w-4 inline mr-1" />
-                            Prev
-                        </button>
-                        <span className="text-sm text-gray-700">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentPage === totalPages}
-                            className="px-4 py-2 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                        >
-                            Next
-                            <ChevronRight className="h-4 w-4 inline ml-1" />
-                        </button>
-                    </div>
-                )}
-            </div>
-
-                </>
-            ) : (
-                /* Employees Section */
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Employee Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {activeMainTab === "Employees" && currentData.map((p) => {
-                                    const activeMeeting = data.find(v => v.person_to_meet === p.person_to_meet && v.approval_status?.toLowerCase() === 'approved' && !v.gate_pass_closed);
-                                    const isAvailable = p.status !== 'Absent';
-                                    
-                                    return (
-                                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="font-medium text-gray-900">{p.person_to_meet}</div>
-                                                {activeMeeting && (
-                                                    <div className="flex items-center gap-1.5 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit border border-orange-100 italic">
-                                                        <Clock className="w-3 h-3" />
-                                                        <span>In Meeting with {activeMeeting.visitor_name}</span>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{p.phone}</td>
-                                            <td className="px-6 py-4">
-                                                {readOnly ? (
-                                                    <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
-                                                        isAvailable
-                                                            ? "bg-green-50 text-green-700 border-green-200"
-                                                            : "bg-red-50 text-red-700 border-red-200"
-                                                    }`}>
-                                                        {isAvailable ? 'Available' : 'Absent'}
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={async () => {
-                                                            const newStatus = isAvailable ? 'Absent' : 'Available';
-                                                            await updatePersonApi(p.id, {
-                                                                personToMeet: p.person_to_meet,
-                                                                phone: p.phone,
-                                                                password: p.password || "",
-                                                                status: newStatus
-                                                            });
-                                                            loadPersons(); // Refresh data
-                                                            showToast(`${p.person_to_meet} marked as ${newStatus}`, "success");
-                                                        }}
-                                                        className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all border-2 ${
+                ) : (
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Employee Name</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {activeMainTab === "Employees" && currentData.map((p) => {
+                                        const activeMeeting = data.find(v => v.person_to_meet === p.person_to_meet && v.approval_status?.toLowerCase() === 'approved' && !v.gate_pass_closed);
+                                        const isAvailable = p.status !== 'Absent';
+                                        
+                                        return (
+                                            <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-medium text-gray-900">{p.person_to_meet}</div>
+                                                    {activeMeeting && (
+                                                        <div className="flex items-center gap-1.5 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit border border-orange-100 italic">
+                                                            <Clock className="w-3 h-3" />
+                                                            <span>In Meeting with {activeMeeting.visitor_name}</span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">{p.phone}</td>
+                                                <td className="px-6 py-4">
+                                                    {readOnly ? (
+                                                        <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
                                                             isAvailable
-                                                                ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                                                                : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                                                        }`}
-                                                    >
-                                                        {isAvailable ? 'Available' : 'Absent'}
-                                                    </button>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                                    <span>{isAvailable ? 'Present' : 'Not in Building'}</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                                ? "bg-green-50 text-green-700 border-green-200"
+                                                                : "bg-red-50 text-red-700 border-red-200"
+                                                        }`}>
+                                                            {isAvailable ? 'Available' : 'Absent'}
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={async () => {
+                                                                const newStatus = isAvailable ? 'Absent' : 'Available';
+                                                                await updatePersonApi(p.id, {
+                                                                    personToMeet: p.person_to_meet,
+                                                                    phone: p.phone,
+                                                                    password: p.password || "",
+                                                                    status: newStatus
+                                                                });
+                                                                loadPersons(); // Refresh data
+                                                                showToast(`${p.person_to_meet} marked as ${newStatus}`, "success");
+                                                            }}
+                                                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all border-2 ${
+                                                                isAvailable
+                                                                    ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                                                    : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                                                            }`}
+                                                        >
+                                                            {isAvailable ? 'Available' : 'Absent'}
+                                                        </button>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                                        <span>{isAvailable ? 'Present' : 'Not in Building'}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        {persons.length === 0 && (
+                            <div className="text-center py-12 text-gray-500">No employees found</div>
+                        )}
                     </div>
-                    {persons.length === 0 && (
-                        <div className="text-center py-12 text-gray-500">No employees found</div>
-                    )}
-                </div>
             )}
+            </div>
             {showImageModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden">

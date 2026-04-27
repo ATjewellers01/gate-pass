@@ -13,13 +13,23 @@ export const loginUser = createAsyncThunk(
     }
 );
 
+// Rehydrate from sessionStorage on page load
+const savedUser = (() => {
+    try {
+        const raw = sessionStorage.getItem('loginUserData');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+})();
+
 const loginSlice = createSlice({
     name: 'userData',
     initialState: {
-        userData: [],
+        userData: savedUser || [],
         error: null,
         loading: false,
-        isLoggedIn: false,
+        isLoggedIn: !!savedUser,
     },
     reducers: {
         logoutUser: (state) => {
@@ -27,6 +37,7 @@ const loginSlice = createSlice({
             state.error = null;
             state.loading = false;
             state.isLoggedIn = false;
+            sessionStorage.removeItem('loginUserData');
         }
     },
     extraReducers: (builder) => {
@@ -39,6 +50,10 @@ const loginSlice = createSlice({
                 state.loading = false;
                 state.userData = action.payload;
                 state.isLoggedIn = true;
+                // Persist to sessionStorage so refresh doesn't log out
+                try {
+                    sessionStorage.setItem('loginUserData', JSON.stringify(action.payload));
+                } catch {}
             })
             .addCase(loginUser.rejected, (state, action) => {
                 state.loading = false;

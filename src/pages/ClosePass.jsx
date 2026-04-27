@@ -1,4 +1,3 @@
-"use client"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -11,9 +10,12 @@ import {
   UserCheck,
   MapPin,
   Bell,
-  ArrowLeft
+  ArrowLeft,
+  Clock,
+  ExternalLink,
+  Filter,
+  Search
 } from "lucide-react"
-import Footer from "../components/Footer"
 import { fetchGatePassesApi, closeGatePassApi } from "../services/cloasePassApi";
 
 const GatePassClosure = () => {
@@ -35,13 +37,17 @@ const GatePassClosure = () => {
       const res = await fetchGatePassesApi();
       const rows = res.data.data;
 
-      const pending = rows.filter(
-        (r) => !r.gate_pass_closed
-      );
+      // Pending: Gate pass not yet closed (Column P is null)
+      const pending = rows.filter(v => {
+        const a2 = v.actual2 || v.actual_2;
+        return !a2 || a2 === "";
+      });
 
-      const history = rows.filter(
-        (r) => r.gate_pass_closed
-      );
+      // History: Gate pass is closed (Column P is not null)
+      const history = rows.filter(v => {
+        const a2 = v.actual2 || v.actual_2;
+        return a2 && a2 !== "";
+      });
 
       // Check for new approved passes
       const currentApprovedCount = pending.filter(r => r.approval_status?.toLowerCase() === "approved").length;
@@ -67,7 +73,6 @@ const GatePassClosure = () => {
   useEffect(() => {
     fetchGatePassData();
     
-    // Polling interval (every 5 seconds)
     const intervalId = setInterval(() => {
         fetchGatePassData(true);
     }, 5000);
@@ -87,10 +92,8 @@ const GatePassClosure = () => {
 
     try {
       await closeGatePassApi(id);
-
       showToast("Gate pass closed successfully", "success");
       fetchGatePassData();
-
     } catch (err) {
       showToast("Failed to close gate pass", "error");
     } finally {
@@ -102,304 +105,285 @@ const GatePassClosure = () => {
     }
   };
 
-
   const currentData = activeTab === "pending" ? pendingGatePasses : historyGatePasses
-
-  const handleRefresh = () => {
-    fetchGatePassData()
-    // showToast("Data refreshed!", "success")
-  }
+  const handleRefresh = () => fetchGatePassData()
 
   const getImageUrl = (image) => {
     if (!image) return "/user.png";
-
-    // If it's already a full URL (http/https), return as is
-    if (typeof image === "string" && image.startsWith("http")) {
-      return image;
-    }
-
-    // For localStorage base64 images, return as is
+    if (typeof image === "string" && image.startsWith("http")) return image;
     return image;
   };
 
+  const formatTime = (time) => {
+    if (!time) return "N/A";
+    try {
+      return new Date(`1970-01-01T${time}`).toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (e) {
+      return time;
+    }
+  };
+
+
+    const [selectedFilter, setSelectedFilter] = useState("All");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [purposeFilter, setPurposeFilter] = useState("All");
+
+    const availableFilters = ["All", ...new Set(currentData.map(v => v.person_to_meet).filter(Boolean))];
+    const availablePurposes = ["All", ...new Set(currentData.map(v => v.purpose_of_visit).filter(Boolean))];
+
+    const filteredData = currentData.filter(v => {
+        const matchesSearch = 
+            v.visitor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            v.mobile_number?.includes(searchTerm);
+        
+        const matchesPerson = selectedFilter === "All" || v.person_to_meet === selectedFilter;
+        const matchesPurpose = purposeFilter === "All" || v.purpose_of_visit === purposeFilter;
+
+        return matchesSearch && matchesPerson && matchesPurpose;
+    });
+
+    // Reset filters when tab changes
+    useEffect(() => {
+        setSelectedFilter("All");
+        setSearchTerm("");
+        setPurposeFilter("All");
+    }, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-white pb-16">
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 p-2 sm:p-4">
-        {/* Header with Refresh Button */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center justify-center">
-            <div className="flex items-center gap-2 mr-4 sm:mr-6">
-              <button
-                onClick={() => navigate("/dashboard/quick-task")}
-                className="flex items-center justify-center w-10 h-10 bg-white text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-200 transition-all shadow-sm hover:shadow-md"
-                title="Back"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="justify-center py-4 sm:py-6">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
-                Close Gate Pass
-              </h1>
-            </div>
-          </div>
-
-          {/* Refresh Button - Top Right with Icon Only */}
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center justify-center w-10 h-10 bg-white text-sky-600 hover:bg-sky-50 rounded-lg border border-sky-200 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Refresh data"
-          >
-            <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 overflow-hidden">
-          <div className="grid grid-cols-2">
-            <button
-              onClick={() => setActiveTab("pending")}
-              className={`py-3 sm:py-4 px-2 sm:px-4 text-center transition-all ${activeTab === "pending"
-                ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white"
-                : "bg-sky-100/50 text-sky-700 hover:bg-sky-200/50"
-                }`}
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base font-medium">
-                <DoorOpen className="h-4 w-4" />
-                Pending ({pendingGatePasses.length})
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab("history")}
-              className={`py-3 sm:py-4 px-2 sm:px-4 text-center transition-all ${activeTab === "history"
-                ? "bg-gradient-to-r from-sky-400 to-blue-400 text-white"
-                : "bg-sky-100/50 text-sky-700 hover:bg-sky-200/50"
-                }`}
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base font-medium">
-                <DoorClosed className="h-4 w-4" />
-                History ({historyGatePasses.length})
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        {loading ? (
-          <div className="bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-sky-500 border-t-transparent mb-2"></div>
-            <p className="text-sky-700 text-sm">Loading data...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-orange-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-orange-200/50 p-6 text-center">
-            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <p className="text-red-600 mb-2">{error}</p>
-            <button
-              onClick={fetchGatePassData}
-              className="text-red-600 hover:text-red-700 underline text-sm"
-            >
-              Try again
-            </button>
-          </div>
-        ) : currentData.length === 0 ? (
-          <div className="bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 p-8 text-center">
-            <DoorClosed className="h-12 w-12 text-sky-400 mx-auto mb-3" />
-            <h3 className="font-medium text-sky-700 mb-1">
-              {activeTab === "pending" ? "No pending gate passes" : "No history records"}
-            </h3>
-            <p className="text-sky-600 text-sm">
-              {activeTab === "pending"
-                ? ""
-                : "No completed gate passes found"}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2 sm:space-y-3">
-            {currentData.map((gatePass) => {
-              const isClosing = closingPasses.has(gatePass.id)
-
-              return (
-                <div
-                  key={gatePass.id}
-                  className={`bg-sky-50/80 backdrop-blur-sm rounded-lg shadow-sm border border-sky-200/50 p-3 transition-all duration-300 ${isClosing ? 'opacity-70 bg-sky-100' : 'hover:shadow-md hover:border-sky-300'
-                    }`}
-                >
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="bg-white text-sky-700 px-2 py-0.5 rounded text-xs font-semibold border border-sky-200">
-                        SRM-{gatePass.id}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${gatePass.approval_status.toLowerCase() === "approved"
-                        ? "bg-sky-500 text-white"
-                        : gatePass.approval_status.toLowerCase() === "rejectet"
-                          ? "bg-blue-400 text-white"
-                          : "bg-gray-500 text-white"
-                        }`}>
-                        {gatePass.approval_status}
-                      </span>
-                    </div>
-
-                    {/* Close Button - Top Right, Smaller Width */}
-                    {activeTab === "pending" && gatePass.approval_status?.toLowerCase() === "approved" && (!gatePass.gate_pass_closed || gatePass.gate_pass_closed === '') && (
-                      <button
-                        onClick={() => handleCloseGatePass(gatePass.id)}
-                        disabled={isClosing}
-                        className={`w-auto px-3 py-1.5 rounded text-xs font-medium transition-all shadow-sm flex items-center gap-1.5 ${isClosing
-                          ? 'bg-gray-400 text-white cursor-not-allowed'
-                          : 'bg-gradient-to-r from-red-500 to-sky-500 hover:from-red-600 hover:to-sky-600 text-white hover:shadow-md transform hover:scale-105'
-                          }`}
-                      >
-                        {isClosing ? (
-                          <>
-                            <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
-                            <span>Closing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <DoorClosed className="h-3 w-3" />
-                            <span>Close</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Main Content */}
-                  <div className="grid grid-cols-2 sm:grid-cols-2">
-                    {/* Left Column */}
-                    <div className="space-y-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1">
-                          {gatePass.visitor_name}
-                        </h3>
-                        <div className="flex items-center text-xs sm:text-sm text-gray-700">
-                          <Phone className="h-3 w-3 text-blue-500 mr-1.5 flex-shrink-0" />
-                          <span>{gatePass.mobile_number}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start text-xs sm:text-sm text-gray-700">
-                        <UserCheck className="h-3 w-3 text-purple-500 mr-1.5 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium">Meeting: </span>
-                          <span className="text-gray-600">{gatePass.person_to_meet}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start text-xs sm:text-sm text-gray-700">
-                        <MapPin className="h-3 w-3 text-green-500 mr-1.5 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium">Purpose: </span>
-                          <span className="text-gray-600">{gatePass.purpose_of_visit}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start text-xs sm:text-sm text-gray-700">
-                        <div className="h-3 w-3 text-sky-500 mr-1.5 mt-0.5 flex-shrink-0">📅</div>
-                        <div>
-                          <span className="font-medium">Visit Date: </span>
-                          <span className="text-gray-600">
-                            {new Date(gatePass.date_of_visit).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
-                            })}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start text-xs sm:text-sm text-gray-700">
-                        <div className="h-3 w-3 text-blue-500 mr-1.5 mt-0.5 flex-shrink-0">⏰</div>
-                        <div>
-                          <span className="font-medium">Entry Time: </span>
-                          <span className="text-gray-600">
-                            {gatePass.time_of_entry
-                              ? new Date(`1970-01-01T${gatePass.time_of_entry}`)
-                                .toLocaleTimeString("en-IN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                })
-                              : "N/A"}
-                          </span>
-
-                          {gatePass.visitor_out_time && (
-                            <div className="mt-0.5">
-                              <span className="font-medium">Exit Time: </span>
-                              <span className="text-gray-600">
-                                {new Date(`1970-01-01T${gatePass.visitor_out_time}`)
-                                  .toLocaleTimeString("en-IN", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  })}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                      </div>
-
-                      {gatePass.visitor_address && (
-                        <div className="flex items-start text-xs sm:text-sm text-gray-700">
-                          <div className="h-3 w-3 text-red-500 mr-1.5 mt-0.5 flex-shrink-0">📍</div>
-                          <div>
-                            <span className="font-medium">Address: </span>
-                            <span className="text-gray-600">{gatePass.visitor_address}</span>
-                          </div>
-                        </div>
-                      )}
-
-                    </div>
-
-                    <div className="flex items-center justify-left sm:justify-left m-8">
-                      <img
-                        src={getImageUrl(gatePass.visitor_photo)}
-                        className="w-36 h-36 object-cover"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = "/user.png";
-                        }}
-                      />
-                    </div>
-
-                    {/* Right Column */}
-
-                  </div>
+    <div className="space-y-4">
+ 
+    <div className="space-y-4">
+        {/* Compact Single Line Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-sky-100 shadow-sm">
+            <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                    <h1 className="text-xl font-bold text-gray-800 leading-tight">Gate Pass Management</h1>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Monitor & Close Passes</p>
                 </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
 
-      {/* Toast */}
-      {toast.show && (
-        <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
-          <div className={`max-w-sm w-full px-4 py-3 rounded-lg shadow-lg border text-white ${
-            toast.type === "success" ? "bg-sky-500 border-sky-600" :
-            toast.type === "warning" ? "bg-blue-400 border-blue-500" :
-            toast.type === "info" ? "bg-sky-400 border-sky-500" :
-            "bg-red-500 border-red-600"
-            }`}>
-            <div className="flex items-center text-sm">
-              {toast.type === 'info' ? (
-                 <Bell className="h-5 w-5 mr-3 flex-shrink-0 animate-bounce" />
-              ) : (
-                 <CheckCircle2 className="h-5 w-5 mr-3 flex-shrink-0" />
-              )}
-              <span className="font-medium">{toast.message}</span>
+                <div className="h-8 w-[1px] bg-sky-100 mx-2 hidden lg:block"></div>
+
+                {/* Compact Tabs */}
+                <div className="flex p-1 bg-sky-50/50 rounded-xl border border-sky-100">
+                    <button
+                        onClick={() => setActiveTab("pending")}
+                        className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
+                            activeTab === "pending"
+                                ? "bg-sky-500 text-white shadow-md shadow-sky-100"
+                                : "text-gray-500 hover:bg-white"
+                        }`}
+                    >
+                        <Clock size={12} />
+                        Active ({pendingGatePasses.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("history")}
+                        className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
+                            activeTab === "history"
+                                ? "bg-green-500 text-white shadow-md shadow-green-100"
+                                : "text-gray-500 hover:bg-white"
+                        }`}
+                    >
+                        <CheckCircle2 size={12} />
+                        History ({historyGatePasses.length})
+                    </button>
+                </div>
             </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+                {/* Search Field */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-400" size={14} />
+                    <input 
+                        type="text"
+                        placeholder="Search visitor/mobile..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 pr-4 py-1.5 bg-sky-50/50 border border-sky-100 rounded-xl text-xs focus:ring-2 focus:ring-sky-500/20 outline-none w-full md:w-48 lg:w-40 transition-all placeholder:text-gray-400 font-medium"
+                    />
+                </div>
+
+                {/* Filter: Person */}
+                <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100 group">
+                    <Filter size={12} className="text-sky-500" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">To Meet:</span>
+                    <select 
+                        value={selectedFilter}
+                        onChange={(e) => setSelectedFilter(e.target.value)}
+                        className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[80px] md:max-w-[120px] truncate"
+                    >
+                        {availableFilters.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                </div>
+
+                {/* Filter: Purpose */}
+                <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Purpose:</span>
+                    <select 
+                        value={purposeFilter}
+                        onChange={(e) => setPurposeFilter(e.target.value)}
+                        className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[80px] md:max-w-[120px] truncate"
+                    >
+                        {availablePurposes.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                </div>
+
+                <button
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    className="p-2 bg-white text-sky-600 hover:bg-sky-50 rounded-xl border border-sky-100 transition-all shadow-sm disabled:opacity-50"
+                    title="Refresh Data"
+                >
+                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                </button>
+            </div>
+        </div>
+        {/* Table Container */}
+        <div className="bg-white rounded-3xl border border-sky-50 shadow-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-sky-50/50">
+                  <th className="px-6 py-4 text-xs font-bold text-sky-700 uppercase tracking-wider text-left">Actions</th>
+                  <th className="px-6 py-4 text-xs font-bold text-sky-700 uppercase tracking-wider">Pass ID</th>
+                  <th className="px-6 py-4 text-xs font-bold text-sky-700 uppercase tracking-wider">Visitor Details</th>
+                  <th className="px-6 py-4 text-xs font-bold text-sky-700 uppercase tracking-wider">Visit Information</th>
+                  <th className="px-6 py-4 text-xs font-bold text-sky-700 uppercase tracking-wider">Timing</th>
+                  <th className="px-6 py-4 text-xs font-bold text-sky-700 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sky-50">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-4 border-sky-500 border-t-transparent"></div>
+                        <span className="text-gray-400 font-medium">Loading gate passes...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-16 text-center text-gray-400 font-medium">
+                      <DoorClosed size={48} className="mx-auto mb-4 opacity-20" />
+                      No {activeTab} gate passes found for this filter.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredData.map((gatePass) => {
+                    const isClosing = closingPasses.has(gatePass.id);
+                    return (
+                      <tr key={gatePass.id} className="hover:bg-sky-50/30 transition-colors group">
+                        <td className="px-6 py-4 text-left">
+                          {activeTab === "pending" && (
+                            gatePass.status === "Approved" || gatePass.status_1 === "Approved" || gatePass.status1 === "Approved" ||
+                            gatePass.status === "Rejected" || gatePass.status_1 === "Rejected" || gatePass.status1 === "Rejected" ||
+                            gatePass.approval_status === "Approved" || gatePass.approval_status === "Rejected"
+                          ) && (
+                            <button
+                              onClick={() => handleCloseGatePass(gatePass.serial_no)}
+                              disabled={isClosing}
+                              className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                isClosing
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-100 hover:scale-105"
+                              }`}
+                            >
+                              {isClosing ? <RefreshCw size={14} className="animate-spin" /> : <DoorClosed size={14} />}
+                              {isClosing ? "Closing..." : "Close Pass"}
+                            </button>
+                          )}
+                          {activeTab === "history" && (
+                            <span className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-xl border border-green-100">
+                              Completed
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs font-bold bg-sky-100 text-sky-700 px-2.5 py-1 rounded-lg">
+                            {gatePass.serial_no || `SN-${gatePass.id.toString().padStart(3, '0')}`}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl overflow-hidden border border-sky-100">
+                              <img 
+                                src={getImageUrl(gatePass.visitor_photo)} 
+                                className="h-full w-full object-cover"
+                                alt="Visitor"
+                              />
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-800 text-sm">{gatePass.visitor_name}</p>
+                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <Phone size={10} /> {gatePass.mobile_number}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-gray-700">To Meet: {gatePass.person_to_meet}</p>
+                            <p className="text-xs text-gray-500 truncate max-w-[200px]">Purpose: {gatePass.purpose_of_visit}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-xs space-y-1">
+                            <p className="text-gray-700 font-medium flex items-center gap-1">
+                              <Clock size={12} className="text-sky-500" /> In: {
+                                gatePass.time_of_entry?.toString().includes('T')
+                                  ? new Date(gatePass.time_of_entry).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                                  : gatePass.time_of_entry || "N/A"
+                              }
+                            </p>
+                            {gatePass.visitor_out_time && (
+                              <p className="text-red-500 font-medium flex items-center gap-1">
+                                <DoorClosed size={12} /> Out: {gatePass.visitor_out_time}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            (gatePass.actual2 || gatePass.actual_2)
+                              ? "bg-green-100 text-green-700"
+                              : ((gatePass.status || gatePass.status_1 || gatePass.status1)?.toUpperCase() === "APPROVED" 
+                                  ? "bg-blue-100 text-blue-700" 
+                                  : (gatePass.status || gatePass.status_1 || gatePass.status1)?.toUpperCase() === "REJECTED"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-amber-100 text-amber-700")
+                          }`}>
+                            {(gatePass.actual2 || gatePass.actual_2) ? "CLOSED" : (gatePass.status || gatePass.status_1 || gatePass.status1 || gatePass.approval_status || "PENDING").toUpperCase()}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      {toast.show && (
+        <div className="fixed top-6 right-6 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl text-white ${
+            toast.type === "success" ? "bg-green-500" :
+            toast.type === "error" ? "bg-red-500" : "bg-sky-500"
+          }`}>
+            <Bell size={20} />
+            <span className="font-bold text-sm">{toast.message}</span>
           </div>
         </div>
       )}
-      <Footer />
+    </div>
     </div>
   )
 }
 
-export default GatePassClosure
+export default GatePassClosure;
+

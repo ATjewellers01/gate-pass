@@ -8,9 +8,7 @@ const EmployeeStatusPage = () => {
     // For now, it defaults to "Visitors", so we might need to update AdminAllVisits.
     
     return (
-        <AdminLayout>
-            <AdminAllVisits initialTab="Employees" hideTabs={true} readOnly={true} />
-        </AdminLayout>
+        <AdminAllVisits initialTab="Employees" hideTabs={true} readOnly={true} />
     );
 };
 
