@@ -5,7 +5,7 @@ import { updateVisitApprovalApi } from "../services/approvalApi.js";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logoutUser } from "../services/slice/loginSlice";
-import { User, Eye, Search, Filter, Download, ChevronLeft, ChevronRight, CheckCircle, XCircle, Bell, LogOut, Clock, ArrowLeft, QrCode } from "lucide-react";
+import { User, Eye, Search, Filter, Download, ChevronLeft, ChevronRight, CheckCircle, XCircle, Bell, LogOut, Clock, ArrowLeft, QrCode, UserCheck } from "lucide-react";
 import {
     fetchPersonsApi,
     createPersonApi,
