@@ -5,7 +5,7 @@ import { updateVisitApprovalApi } from "../services/approvalApi.js";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logoutUser } from "../services/slice/loginSlice";
-import { User, Eye, Search, Filter, Download, ChevronLeft, ChevronRight, CheckCircle, XCircle, Bell, LogOut, Clock, ArrowLeft, QrCode, UserCheck } from "lucide-react";
+import { User, Users, Eye, Search, Filter, Download, ChevronLeft, ChevronRight, CheckCircle, XCircle, Bell, LogOut, Clock, ArrowLeft, QrCode, UserCheck } from "lucide-react";
 import {
     fetchPersonsApi,
     createPersonApi,
@@ -191,127 +191,120 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             {/* Compact Single Line Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-sky-100 shadow-sm mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                            {readOnly && (
-                                <button 
-                                    onClick={() => navigate("/dashboard/quick-task")}
-                                    className="p-1.5 hover:bg-sky-50 rounded-lg transition-colors border border-sky-100"
-                                >
-                                    <ArrowLeft className="w-4 h-4 text-sky-600" />
-                                </button>
-                            )}
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-800 leading-tight">
-                                    {readOnly ? "Employee Status" : "Admin Dashboard"}
-                                </h1>
-                                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">
-                                    {activeMainTab === "Visitors" ? "Visitor Analytics" : "Team Overview"}
-                                </p>
-                            </div>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-sky-100 shadow-sm mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        {readOnly && (
+                            <button 
+                                onClick={() => navigate("/dashboard/quick-task")}
+                                className="p-1.5 hover:bg-sky-50 rounded-lg transition-colors border border-sky-100"
+                            >
+                                <ArrowLeft className="w-4 h-4 text-sky-600" />
+                            </button>
+                        )}
+                        <div>
+                            <h1 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">
+                                {readOnly ? "Employee Status" : "Visitor Management"}
+                            </h1>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Comprehensive Reports</p>
                         </div>
                     </div>
 
-                    <div className="h-8 w-[1px] bg-sky-100 mx-2 hidden lg:block"></div>
+                    <div className="h-8 w-[1px] bg-sky-100 mx-2 hidden sm:block"></div>
 
                     {/* Compact Tabs */}
-                    {!hideTabs && (
-                        <div className="flex p-1 bg-sky-50/50 rounded-xl border border-sky-100">
-                            <button
-                                onClick={() => setActiveMainTab("Visitors")}
-                                className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
-                                    activeMainTab === "Visitors"
-                                        ? "bg-sky-500 text-white shadow-md shadow-sky-100"
-                                        : "text-gray-500 hover:bg-white"
-                                }`}
-                            >
-                                <User size={12} />
-                                Visitors
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setActiveMainTab("Employees");
-                                    loadPersons();
-                                }}
-                                className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
-                                    activeMainTab === "Employees"
-                                        ? "bg-sky-500 text-white shadow-md shadow-sky-100"
-                                        : "text-gray-500 hover:bg-white"
-                                }`}
-                            >
-                                <UserCheck size={12} />
-                                Employees
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex p-1 bg-sky-50/50 rounded-xl border border-sky-100 w-full sm:w-auto">
+                        <button
+                            onClick={() => setActiveMainTab("Visitors")}
+                            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-bold text-[10px] sm:text-[11px] transition-all flex items-center justify-center gap-2 ${
+                                activeMainTab === "Visitors"
+                                    ? "bg-sky-500 text-white shadow-md shadow-sky-100"
+                                    : "text-gray-500 hover:bg-white"
+                            }`}
+                        >
+                            <Users size={12} />
+                            Visitors
+                        </button>
+                        <button
+                            onClick={() => setActiveMainTab("Employees")}
+                            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-bold text-[10px] sm:text-[11px] transition-all flex items-center justify-center gap-2 ${
+                                activeMainTab === "Employees"
+                                    ? "bg-sky-500 text-white shadow-md shadow-sky-100"
+                                    : "text-gray-500 hover:bg-white"
+                            }`}
+                        >
+                            <UserCheck size={12} />
+                            Employees
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     {/* Search Field */}
-                    <div className="relative">
+                    <div className="relative flex-1 sm:flex-none min-w-[120px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-400" size={14} />
                         <input 
                             type="text"
                             placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 pr-4 py-1.5 bg-sky-50/50 border border-sky-100 rounded-xl text-xs focus:ring-2 focus:ring-sky-500/20 outline-none w-full md:w-48 lg:w-40 transition-all placeholder:text-gray-400 font-medium"
+                            className="pl-9 pr-4 py-2 bg-sky-50/50 border border-sky-100 rounded-xl text-xs focus:ring-2 focus:ring-sky-500/20 outline-none w-full sm:w-48 transition-all placeholder:text-gray-400 font-medium"
                         />
                     </div>
 
                     {activeMainTab === "Visitors" && availableFilters.length > 1 && (
-                        <>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                             {/* Filter: Person */}
-                            <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100">
+                            <div className="flex-1 sm:flex-none flex items-center gap-2 bg-sky-50/50 px-3 py-2 rounded-xl border border-sky-100">
                                 <Filter size={12} className="text-sky-500" />
                                 <select 
                                     value={selectedFilter}
                                     onChange={(e) => setSelectedFilter(e.target.value)}
-                                    className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[100px] truncate"
+                                    className="bg-transparent text-[11px] font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 w-full sm:max-w-[100px] truncate"
                                 >
                                     {availableFilters.map(f => <option key={f} value={f}>{f}</option>)}
                                 </select>
                             </div>
 
                             {/* Filter: Purpose */}
-                            <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100">
+                            <div className="flex-1 sm:flex-none flex items-center gap-2 bg-sky-50/50 px-3 py-2 rounded-xl border border-sky-100">
                                 <select 
                                     value={purposeFilter}
                                     onChange={(e) => setPurposeFilter(e.target.value)}
-                                    className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[100px] truncate"
+                                    className="bg-transparent text-[11px] font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 w-full sm:max-w-[100px] truncate"
                                 >
                                     {availablePurposes.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                             </div>
-                        </>
+                        </div>
                     )}
 
-                    {!readOnly && (
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {!readOnly && (
+                            <button
+                                onClick={() => setShowPersonModal(true)}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-sky-500 text-white rounded-xl text-xs font-bold hover:bg-sky-600 shadow-md shadow-sky-100 transition-all"
+                            >
+                                + Add Person
+                            </button>
+                        )}
+                        
                         <button
-                            onClick={() => setShowPersonModal(true)}
-                            className="px-4 py-1.5 bg-sky-500 text-white rounded-xl text-xs font-bold hover:bg-sky-600 shadow-md shadow-sky-100 transition-all"
+                            onClick={() => setIsQRModalOpen(true)}
+                            className="p-2 text-sky-600 hover:bg-sky-50 rounded-xl transition-colors border border-sky-200 shadow-sm"
+                            title="Show Visitor QR Code"
                         >
-                            + Add Person
+                            <QrCode className="w-4 h-4" />
                         </button>
-                    )}
-                    
-                    <button
-                        onClick={() => setIsQRModalOpen(true)}
-                        className="p-2 text-sky-600 hover:bg-sky-50 rounded-xl transition-colors border border-sky-200 shadow-sm"
-                        title="Show Visitor QR Code"
-                    >
-                        <QrCode className="w-4 h-4" />
-                    </button>
 
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-4 py-1.5 bg-white text-red-500 border border-red-100 rounded-xl text-xs font-bold hover:bg-red-50 shadow-sm transition-colors"
-                    >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>Logout</span>
-                    </button>
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-red-500 border border-red-100 rounded-xl text-xs font-bold hover:bg-red-50 shadow-sm transition-colors"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                            <span>Logout</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -453,36 +446,37 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Employee Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {activeMainTab === "Employees" && currentData.map((p) => {
-                                        const activeMeeting = data.find(v => v.person_to_meet === p.person_to_meet && v.approval_status?.toLowerCase() === 'approved' && !v.gate_pass_closed);
-                                        const isAvailable = p.status !== 'Absent';
-                                        
-                                        return (
-                                            <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="font-medium text-gray-900">{p.person_to_meet}</div>
-                                                    {activeMeeting && (
-                                                        <div className="flex items-center gap-1.5 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit border border-orange-100 italic">
-                                                            <Clock className="w-3 h-3" />
-                                                            <span>In Meeting with {activeMeeting.visitor_name}</span>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-600">{p.phone}</td>
-                                                <td className="px-6 py-4">
-                                                    {readOnly ? (
+                    <div className="space-y-6">
+                        {/* Desktop Table - Employees */}
+                        <div className="hidden lg:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Employee Name</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                                            {!readOnly && <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location Status</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {activeMainTab === "Employees" && currentData.map((p) => {
+                                            const activeMeeting = data.find(v => v.person_to_meet === p.person_to_meet && v.approval_status?.toLowerCase() === 'approved' && !v.gate_pass_closed);
+                                            const isAvailable = p.status !== 'Absent';
+                                            
+                                            return (
+                                                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-medium text-gray-900">{p.person_to_meet}</div>
+                                                        {activeMeeting && (
+                                                            <div className="flex items-center gap-1.5 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit border border-orange-100 italic">
+                                                                <Clock className="w-3 h-3" />
+                                                                <span>In Meeting with {activeMeeting.visitor_name}</span>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-600">{p.phone}</td>
+                                                    <td className="px-6 py-4">
                                                         <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
                                                             isAvailable
                                                                 ? "bg-green-50 text-green-700 border-green-200"
@@ -490,41 +484,77 @@ const AdminAllVisits = ({ initialTab = "Visitors", hideTabs = false, readOnly = 
                                                         }`}>
                                                             {isAvailable ? 'Available' : 'Absent'}
                                                         </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={async () => {
-                                                                const newStatus = isAvailable ? 'Absent' : 'Available';
-                                                                await updatePersonApi(p.id, {
-                                                                    personToMeet: p.person_to_meet,
-                                                                    phone: p.phone,
-                                                                    password: p.password || "",
-                                                                    status: newStatus
-                                                                });
-                                                                loadPersons(); // Refresh data
-                                                                showToast(`${p.person_to_meet} marked as ${newStatus}`, "success");
-                                                            }}
-                                                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all border-2 ${
-                                                                isAvailable
-                                                                    ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                                                                    : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                                                            }`}
-                                                        >
-                                                            {isAvailable ? 'Available' : 'Absent'}
-                                                        </button>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                                        <span>{isAvailable ? 'Present' : 'Not in Building'}</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
+
+                     {/* Mobile Cards - Employees */}
+                     <div className="lg:hidden space-y-4">
+                         {activeMainTab === "Employees" && currentData.map((p) => {
+                             const activeMeeting = data.find(v => v.person_to_meet === p.person_to_meet && v.approval_status?.toLowerCase() === 'approved' && !v.gate_pass_closed);
+                             const isAvailable = p.status !== 'Absent';
+                             return (
+                                 <div key={p.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-4">
+                                     <div className="flex items-center justify-between">
+                                         <div className="font-bold text-gray-900 text-base">{p.person_to_meet}</div>
+                                         <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                             isAvailable
+                                                 ? "bg-green-100 text-green-700"
+                                                 : "bg-red-100 text-red-700"
+                                         }`}>
+                                             {isAvailable ? 'Available' : 'Absent'}
+                                         </div>
+                                     </div>
+                                     
+                                     <div className="flex items-center gap-2 text-sm text-gray-600">
+                                         <Phone size={14} className="text-sky-500" />
+                                         <span>{p.phone}</span>
+                                     </div>
+
+                                     {activeMeeting && (
+                                         <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-100 rounded-lg text-xs text-orange-700 italic">
+                                             <Clock size={14} />
+                                             <span>In Meeting with {activeMeeting.visitor_name}</span>
+                                         </div>
+                                     )}
+
+                                     {!readOnly && (
+                                         <button
+                                             onClick={async () => {
+                                                 const newStatus = isAvailable ? 'Absent' : 'Available';
+                                                 await updatePersonApi(p.id, {
+                                                     personToMeet: p.person_to_meet,
+                                                     phone: p.phone,
+                                                     password: p.password || "",
+                                                     status: newStatus
+                                                 });
+                                                 loadPersons();
+                                             }}
+                                             className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all shadow-md ${
+                                                 isAvailable
+                                                     ? "bg-red-500 text-white shadow-red-100"
+                                                     : "bg-green-500 text-white shadow-green-100"
+                                             }`}
+                                         >
+                                             {isAvailable ? 'Mark as Absent' : 'Mark as Available'}
+                                         </button>
+                                     )}
+                                 </div>
+                             );
+                         })}
+                     </div>
+
+                     {totalPages > 1 && (
+                         <div className="flex items-center justify-between pt-4 lg:hidden">
+                             <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="px-4 py-2 text-sm font-bold bg-white rounded-xl border border-gray-200 disabled:opacity-50">Prev</button>
+                             <button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="px-4 py-2 text-sm font-bold bg-white rounded-xl border border-gray-200 disabled:opacity-50">Next</button>
+                         </div>
+                     )}
                         {persons.length === 0 && (
                             <div className="text-center py-12 text-gray-500">No employees found</div>
                         )}

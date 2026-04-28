@@ -155,83 +155,83 @@ const GatePassClosure = () => {
 
   return (
     <div className="space-y-4">
- 
-    <div className="space-y-4">
         {/* Compact Single Line Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-sky-100 shadow-sm">
-            <div className="flex items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-sky-100 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex-shrink-0">
-                    <h1 className="text-xl font-bold text-gray-800 leading-tight">Gate Pass Management</h1>
+                    <h1 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">Gate Pass Management</h1>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Monitor & Close Passes</p>
                 </div>
 
-                <div className="h-8 w-[1px] bg-sky-100 mx-2 hidden lg:block"></div>
+                <div className="h-8 w-[1px] bg-sky-100 mx-2 hidden sm:block"></div>
 
                 {/* Compact Tabs */}
-                <div className="flex p-1 bg-sky-50/50 rounded-xl border border-sky-100">
+                <div className="flex p-1 bg-sky-50/50 rounded-xl border border-sky-100 w-full sm:w-auto">
                     <button
                         onClick={() => setActiveTab("pending")}
-                        className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
+                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-bold text-[10px] sm:text-[11px] transition-all flex items-center justify-center gap-2 ${
                             activeTab === "pending"
                                 ? "bg-sky-500 text-white shadow-md shadow-sky-100"
                                 : "text-gray-500 hover:bg-white"
                         }`}
                     >
                         <Clock size={12} />
-                        Active ({pendingGatePasses.length})
+                        <span>Active ({pendingGatePasses.length})</span>
                     </button>
                     <button
                         onClick={() => setActiveTab("history")}
-                        className={`px-4 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center gap-2 ${
+                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-bold text-[10px] sm:text-[11px] transition-all flex items-center justify-center gap-2 ${
                             activeTab === "history"
                                 ? "bg-green-500 text-white shadow-md shadow-green-100"
                                 : "text-gray-500 hover:bg-white"
                         }`}
                     >
                         <CheckCircle2 size={12} />
-                        History ({historyGatePasses.length})
+                        <span>History ({historyGatePasses.length})</span>
                     </button>
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {/* Search Field */}
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-none min-w-[150px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-400" size={14} />
                     <input 
                         type="text"
-                        placeholder="Search visitor/mobile..."
+                        placeholder="Search visitor..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-1.5 bg-sky-50/50 border border-sky-100 rounded-xl text-xs focus:ring-2 focus:ring-sky-500/20 outline-none w-full md:w-48 lg:w-40 transition-all placeholder:text-gray-400 font-medium"
+                        className="pl-9 pr-4 py-2 bg-sky-50/50 border border-sky-100 rounded-xl text-xs focus:ring-2 focus:ring-sky-500/20 outline-none w-full sm:w-48 transition-all placeholder:text-gray-400 font-medium"
                     />
                 </div>
 
-                {/* Filter: Person */}
-                <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100 group">
-                    <Filter size={12} className="text-sky-500" />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">To Meet:</span>
-                    <select 
-                        value={selectedFilter}
-                        onChange={(e) => setSelectedFilter(e.target.value)}
-                        className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[80px] md:max-w-[120px] truncate"
-                    >
-                        {availableFilters.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {/* Filter: Person */}
+                    <div className="flex-1 sm:flex-none flex items-center gap-2 bg-sky-50/50 px-3 py-2 rounded-xl border border-sky-100 group">
+                        <Filter size={12} className="text-sky-500" />
+                        <select 
+                            value={selectedFilter}
+                            onChange={(e) => setSelectedFilter(e.target.value)}
+                            className="bg-transparent text-[11px] font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 w-full sm:max-w-[100px] truncate"
+                        >
+                            <option value="All">All Staff</option>
+                            {availableFilters.filter(f => f !== "All").map(f => <option key={f} value={f}>{f}</option>)}
+                        </select>
+                    </div>
 
-                {/* Filter: Purpose */}
-                <div className="flex items-center gap-2 bg-sky-50/50 px-3 py-1.5 rounded-xl border border-sky-100">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">Purpose:</span>
-                    <select 
-                        value={purposeFilter}
-                        onChange={(e) => setPurposeFilter(e.target.value)}
-                        className="bg-transparent text-xs font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 max-w-[80px] md:max-w-[120px] truncate"
-                    >
-                        {availablePurposes.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    {/* Filter: Purpose */}
+                    <div className="flex-1 sm:flex-none flex items-center gap-2 bg-sky-50/50 px-3 py-2 rounded-xl border border-sky-100">
+                        <select 
+                            value={purposeFilter}
+                            onChange={(e) => setPurposeFilter(e.target.value)}
+                            className="bg-transparent text-[11px] font-semibold text-gray-700 border-none outline-none cursor-pointer focus:ring-0 w-full sm:max-w-[100px] truncate"
+                        >
+                            <option value="All">All Purpose</option>
+                            {availablePurposes.filter(p => p !== "All").map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                    </div>
                 </div>
-
+            </div>
                 <button
                     onClick={handleRefresh}
                     disabled={loading}
@@ -241,9 +241,8 @@ const GatePassClosure = () => {
                     <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 </button>
             </div>
-        </div>
-        {/* Table Container */}
-        <div className="bg-white rounded-3xl border border-sky-50 shadow-xl overflow-hidden">
+        {/* Table Container - Desktop only */}
+        <div className="hidden lg:block bg-white rounded-3xl border border-sky-50 shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -311,17 +310,11 @@ const GatePassClosure = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-xl overflow-hidden border border-sky-100">
-                              <img 
-                                src={getImageUrl(gatePass.visitor_photo)} 
-                                className="h-full w-full object-cover"
-                                alt="Visitor"
-                              />
+                              <img src={getImageUrl(gatePass.visitor_photo)} className="h-full w-full object-cover" alt="Visitor" />
                             </div>
                             <div>
                               <p className="font-bold text-gray-800 text-sm">{gatePass.visitor_name}</p>
-                              <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <Phone size={10} /> {gatePass.mobile_number}
-                              </p>
+                              <p className="text-xs text-gray-500 flex items-center gap-1"><Phone size={10} /> {gatePass.mobile_number}</p>
                             </div>
                           </div>
                         </td>
@@ -351,8 +344,8 @@ const GatePassClosure = () => {
                           <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             (gatePass.actual2 || gatePass.actual_2)
                               ? "bg-green-100 text-green-700"
-                              : ((gatePass.status || gatePass.status_1 || gatePass.status1)?.toUpperCase() === "APPROVED" 
-                                  ? "bg-blue-100 text-blue-700" 
+                              : ((gatePass.status || gatePass.status_1 || gatePass.status1)?.toUpperCase() === "APPROVED"
+                                  ? "bg-blue-100 text-blue-700"
                                   : (gatePass.status || gatePass.status_1 || gatePass.status1)?.toUpperCase() === "REJECTED"
                                     ? "bg-red-100 text-red-700"
                                     : "bg-amber-100 text-amber-700")
@@ -369,6 +362,93 @@ const GatePassClosure = () => {
           </div>
         </div>
 
+        {/* Mobile Cards - visible only on small screens */}
+        <div className="lg:hidden space-y-3">
+          {loading ? (
+            <div className="bg-white rounded-2xl p-8 flex justify-center shadow-sm border border-sky-50">
+              <div className="animate-spin rounded-full h-8 w-8 border-4 border-sky-500 border-t-transparent"></div>
+            </div>
+          ) : filteredData.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center text-gray-400 font-medium shadow-sm border border-sky-50">
+              <DoorClosed size={40} className="mx-auto mb-3 opacity-20" />
+              No {activeTab} gate passes found.
+            </div>
+          ) : (
+            filteredData.map((gatePass) => {
+              const isClosing = closingPasses.has(gatePass.id);
+              const canClose = activeTab === "pending" && (
+                gatePass.status === "Approved" || gatePass.status_1 === "Approved" || gatePass.status1 === "Approved" ||
+                gatePass.status === "Rejected" || gatePass.status_1 === "Rejected" || gatePass.status1 === "Rejected" ||
+                gatePass.approval_status === "Approved" || gatePass.approval_status === "Rejected"
+              );
+              return (
+                <div key={gatePass.id} className="bg-white rounded-2xl border border-sky-100 shadow-sm p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold bg-sky-100 text-sky-700 px-2.5 py-1 rounded-lg">
+                      {gatePass.serial_no || `SN-${gatePass.id?.toString().padStart(3, '0')}`}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      (gatePass.actual2 || gatePass.actual_2)
+                        ? "bg-green-100 text-green-700"
+                        : (gatePass.status || gatePass.status_1 || gatePass.status1)?.toUpperCase() === "APPROVED"
+                          ? "bg-blue-100 text-blue-700"
+                          : (gatePass.status || gatePass.status_1 || gatePass.status1)?.toUpperCase() === "REJECTED"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {(gatePass.actual2 || gatePass.actual_2) ? "CLOSED" : (gatePass.status || gatePass.status_1 || gatePass.status1 || gatePass.approval_status || "PENDING").toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl overflow-hidden border border-sky-100 flex-shrink-0">
+                      <img src={getImageUrl(gatePass.visitor_photo)} className="h-full w-full object-cover" alt="Visitor" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">{gatePass.visitor_name}</p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1"><Phone size={10} /> {gatePass.mobile_number}</p>
+                    </div>
+                  </div>
+                  <div className="text-sm space-y-0.5">
+                    <p className="text-gray-700"><span className="font-semibold">To Meet:</span> {gatePass.person_to_meet}</p>
+                    <p className="text-xs text-gray-500"><span className="font-semibold">Purpose:</span> {gatePass.purpose_of_visit}</p>
+                  </div>
+                  <div className="flex gap-4 text-xs text-gray-600">
+                    <p className="flex items-center gap-1">
+                      <Clock size={12} className="text-sky-500" /> In: {
+                        gatePass.time_of_entry?.toString().includes('T')
+                          ? new Date(gatePass.time_of_entry).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                          : gatePass.time_of_entry || "N/A"
+                      }
+                    </p>
+                    {gatePass.visitor_out_time && (
+                      <p className="flex items-center gap-1 text-red-500">
+                        <DoorClosed size={12} /> Out: {gatePass.visitor_out_time}
+                      </p>
+                    )}
+                  </div>
+                  {canClose && (
+                    <button
+                      onClick={() => handleCloseGatePass(gatePass.serial_no)}
+                      disabled={isClosing}
+                      className={`w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        isClosing ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-500 text-white hover:bg-red-600 shadow-md"
+                      }`}
+                    >
+                      {isClosing ? <RefreshCw size={14} className="animate-spin" /> : <DoorClosed size={14} />}
+                      {isClosing ? "Closing..." : "Close Pass"}
+                    </button>
+                  )}
+                  {activeTab === "history" && (
+                    <div className="text-center">
+                      <span className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-xl border border-green-100">Completed</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
       {toast.show && (
         <div className="fixed top-6 right-6 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
           <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl text-white ${
@@ -380,7 +460,6 @@ const GatePassClosure = () => {
           </div>
         </div>
       )}
-    </div>
     </div>
   )
 }

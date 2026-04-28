@@ -271,9 +271,9 @@ const AssignTask = () => {
       <div className="bg-white rounded-3xl border border-sky-50 shadow-2xl overflow-hidden">
         <form onSubmit={handleSubmit} className="divide-y divide-sky-50">
           {/* Form Content */}
-          <div className="p-8 lg:p-12 space-y-10">
+          <div className="p-4 sm:p-8 lg:p-12 space-y-8 lg:space-y-10">
             {/* Photo Section - Moved to top for better flow */}
-            <div className="flex flex-col lg:flex-row gap-10">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
               <div className="flex-1 space-y-4">
                 <h2 className="text-sm font-bold text-sky-700 uppercase tracking-widest flex items-center gap-2">
                   <Camera size={16} /> Visitor Photo
@@ -473,8 +473,8 @@ const AssignTask = () => {
           </div>
 
           {/* Action Bar */}
-          <div className="p-8 bg-sky-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="text-xs text-gray-500 font-medium">
+          <div className="p-4 sm:p-8 bg-sky-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="text-[10px] sm:text-xs text-gray-500 font-medium">
               Fields marked with * are mandatory
             </div>
             <div className="flex gap-4 w-full sm:w-auto">
