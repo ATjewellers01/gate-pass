@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { loginUser } from "../services/slice/loginSlice";
 import { Eye, EyeOff } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
@@ -24,28 +24,11 @@ const LoginPage = () => {
     const [typedText, setTypedText] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
-    // ✅ Already logged in? Redirect to dashboard (AFTER all hooks)
-    if (isLoggedIn && userData) {
-        const role = userData.role;
-        const dest =
-            role === "guard" ? "/dashboard/quick-task" : "/dashboard/approval-request";
-        return <Navigate to={dest} replace />;
-    }
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsLoginLoading(true);
-        dispatch(loginUser(formData));
-    };
+    // ✅ All hooks declared above — navigation handled in useEffect below
 
     useEffect(() => {
         if (isLoggedIn && userData) {
             setIsLoginLoading(false);
-
-            // console.log("User Data:", userData);
-
-            // Save data once - no localStorage per user request
-
             if (userData.role === "admin" || userData.user_name?.toUpperCase() === "AAKASH AGRAWAL") {
                 navigate("/dashboard/approval-request", { replace: true });
             } else if (userData.role === "guard") {
@@ -60,6 +43,12 @@ const LoginPage = () => {
             showToast(error, "error");
         }
     }, [isLoggedIn, userData, error, navigate]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setIsLoginLoading(true);
+        dispatch(loginUser(formData));
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;

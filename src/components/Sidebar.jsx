@@ -73,7 +73,7 @@ const Sidebar = () => {
     <div className="flex flex-col h-full bg-white border-r border-sky-100 w-64 shadow-xl z-20">
       {/* Logo */}
       <div className="p-6 border-b border-sky-50">
-        <div className="flex items-center gap-3">``
+        <div className="flex items-center gap-3">
           <div className="bg-sky-500 p-2 rounded-xl shadow-lg shadow-sky-200">
             <FileText className="text-white" size={24} />
           </div>
